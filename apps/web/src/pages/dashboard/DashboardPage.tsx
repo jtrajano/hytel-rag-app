@@ -1,9 +1,15 @@
+import { Link } from 'react-router-dom'
+import { Search, MessageSquare, LogOut } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import MorningSummarySection from '@/sections/dashboard/MorningSummarySection'
 import AQIOverviewSection from '@/sections/dashboard/AQIOverviewSection'
 import ForecastSection from '@/sections/dashboard/ForecastSection'
+import { useAuth } from '@/hooks/useAuth'
 
 const DashboardPage = () => {
+  const { user, signOut } = useAuth()
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -11,24 +17,72 @@ const DashboardPage = () => {
     day: 'numeric',
   })
 
+  const displayName = user?.displayName ?? 'there'
+  const firstName = displayName.split(' ')[0]
+  const initial = firstName.charAt(0).toUpperCase()
+
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky Header Bar */}
+      {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Good morning, Alex</h1>
+            <h1 className="text-lg font-semibold text-foreground">
+              {greeting}, {firstName}
+            </h1>
             <p className="text-sm text-muted-foreground">Manila, Philippines · {today}</p>
           </div>
-          <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-              A
-            </AvatarFallback>
-          </Avatar>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              aria-label="Sign out"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                {initial}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Navigation bar */}
+      <nav className="bg-background border-b border-border">
+        <div className="max-w-2xl mx-auto px-4 flex gap-1 py-1">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <Link to="/search">
+              <Search className="w-4 h-4" />
+              Search
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <Link to="/chat">
+              <MessageSquare className="w-4 h-4" />
+              Ask AI
+            </Link>
+          </Button>
+        </div>
+      </nav>
+
+      {/* Main content */}
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         <MorningSummarySection />
         <AQIOverviewSection />
