@@ -12,20 +12,28 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
     "@repo/functions": "workspace:*",
     "@repo/shared": "workspace:*",
     "@repo/ui": "workspace:*",
+    "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-query": "^5.62.0",
     "@trpc/client": "^11.0.0-rc.660",
     "@trpc/react-query": "^11.0.0-rc.660",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.574.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@repo/config": "workspace:*",
     "@repo/eslint-config": "workspace:*",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
+    "@types/node": "^25.2.3",
     "@types/react": "^18.3.14",
     "@types/react-dom": "^18.3.4",
     "@vitejs/plugin-react": "^4.3.4",
@@ -33,7 +41,7 @@
     "eslint": "^8.57.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
+    "tailwindcss": "^3.4.19",
     "typescript": "5.5.4",
     "vite": "^5.1.4",
     "vitest": "^2.1.8"
