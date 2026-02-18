@@ -62,8 +62,23 @@ Script: `BQ_PROJECT=aircare-sea pnpm prepare:training`
 
 Script: `GCS_BUCKET=aircare-sea-data pnpm chunk:docs`
 
-- [ ] **Embedding Generation:** Run batch job using `text-embedding-004` to create vectors from chunks.
-- [ ] **Vector Search Index:** Create and deploy Vertex AI Vector Search Index.
+- [x] **Embedding Generation:** Run batch job using `text-embedding-004` to create vectors from chunks.
+
+Script: `GCS_BUCKET=aircare-sea-data VERTEX_PROJECT=aircare-sea pnpm embed:docs`
+
+- [x] **Vector Search Index:** Store chunks + vectors in Firestore Native Vector Search (replaces Vertex AI Vector Search Index).
+
+Script: `GCS_BUCKET=aircare-sea-data FIRESTORE_PROJECT=aircare-sea pnpm index:docs`
+
+One-time index setup (run once before first query):
+
+```
+gcloud firestore indexes composite create \
+  --project=aircare-sea \
+  --collection-group=rag_chunks \
+  --query-scope=COLLECTION \
+  --field-config=field-path=embedding,vector-config='{"dimension":"768","flat":"{}"}'
+```
 
 ---
 
@@ -79,7 +94,10 @@ Script: `GCS_BUCKET=aircare-sea-data pnpm chunk:docs`
 
 #### **Member 2 (RAG & App)**
 
-- [ ] **RAG Service:** Implement `RAGService` class (TDD 4.2) handling Embedding → Retrieval → Prompting.
+- [ ] **RAG Service:** Implement `RAGService` class handling Embedding → Retrieval → Prompting.
+  - Retrieval uses **Firestore `find_nearest()`** (not TDD 4.2's `aiplatform_v1.MatchServiceClient`)
+  - `RAGService(project_id)` — no `index_endpoint` param needed
+  - `_retrieve_chunks()` queries `rag_chunks` collection and returns docs with `content` already included (no separate lookup step)
 - [ ] **Prompt Engineering:** Implement the System Prompt from PDD Section 8.3.
 - [ ] **Validation:** Test 20 "Golden Questions" (e.g., "Safe for asthma?", "Can I jog?") and manually verify citations.
 
