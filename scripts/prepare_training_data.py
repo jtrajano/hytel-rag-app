@@ -51,16 +51,14 @@ except ImportError:
 
 def build_query() -> str:
     # Use all available data — more history = better AutoML forecast model.
-    # Filter with HAVING so hourly groups missing pm25 entirely are excluded,
-    # while groups with partial pm25 readings still contribute their average.
+    # pm10 and no2 are excluded: OpenAQ data for these cities only reports pm25,
+    # so those columns are entirely NULL and add no signal to the model.
     return f"""
     SELECT * FROM (
       SELECT
         city,
         TIMESTAMP_TRUNC(timestamp, HOUR) AS timestamp,
-        AVG(pm25) AS pm25,
-        AVG(pm10) AS pm10,
-        AVG(no2)  AS no2
+        AVG(pm25) AS pm25
       FROM `{PROJECT}.{DATASET}.aqi_measurements`
       WHERE timestamp IS NOT NULL
       GROUP BY city, TIMESTAMP_TRUNC(timestamp, HOUR)
@@ -101,20 +99,18 @@ def main() -> None:
     print(f"Retrieved {len(df):,} rows across {len(cities)} city/cities: {', '.join(cities)}")
 
     # Column order expected by Vertex AI AutoML Forecasting
-    df = df[["timestamp", "city", "pm25", "pm10", "no2"]]
+    df = df[["timestamp", "city", "pm25"]]
 
     # Format timestamp as ISO 8601 string (Vertex AI requirement)
     df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # Round pollutant values to 2 decimal places
-    for col in ["pm25", "pm10", "no2"]:
-        df[col] = df[col].round(2)
+    df["pm25"] = df["pm25"].round(2)
 
     run_stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
     filename = f"aqi_training_{run_stamp}.csv"
     gcs_uri = f"gs://{BUCKET}/{GCS_OUTPUT_PREFIX}/{filename}"
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, newline="") as tmp:
         df.to_csv(tmp, index=False)
         tmp_path = tmp.name
 
