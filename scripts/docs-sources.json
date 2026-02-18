@@ -9,29 +9,60 @@
     "label": "WHO Air Quality Guidelines 2021 Summary",
     "url": "https://www.who.int/publications/i/item/9789240034228"
   },
-
   {
     "id": "who-air-pollution",
     "label": "WHO Air Pollution",
     "url": "https://www.who.int/health-topics/air-pollution"
   },
-
   {
     "id": "who-household-air-pollution",
     "label": "WHO Household Air Pollution and Health",
     "url": "https://www.who.int/news-room/fact-sheets/detail/household-air-pollution-and-health"
   },
-
   {
     "id": "who-ambient-outdoor-air-quality-and-health",
     "label": "WHO Ambient Outdoor Air Quality and Health",
     "url": "https://www.who.int/news-room/fact-sheets/detail/ambient-(outdoor)-air-quality-and-health"
   },
-
+  {
+    "id": "who-air-pollution-reduction",
+    "label": "Q&A: Air Pollution Reduction",
+    "url": "https://www.who.int/news-room/questions-and-answers/item/air-pollution-reducing-short-lived-climate-pollutants"
+  },
+  {
+    "id": "who-air-pollution-personal-interventions",
+    "label": "Q&A: Air Pollution Personal Interventions",
+    "url": "https://www.who.int/news-room/questions-and-answers/item/air-pollution-personal-interventions-and-risk-communication"
+  },
+  {
+    "id": "who-air-pollution-hia",
+    "label": "Q&A: The Role of Health Impact Assessment (HIA) in Decision-Making",
+    "url": "https://www.who.int/news-room/questions-and-answers/item/the-role-of-health-impact-assessment-(hia)-in-decision-making"
+  },
+  {
+    "id": "who-air-pollution-database",
+    "label": "Q&A: WHO Air Quality Database of Over 6000 Cities",
+    "url": "https://www.who.int/news-room/questions-and-answers/item/who-s-fifth-who-air-quality-database-of-over-6000-cities-updated-april-2022"
+  },
+  {
+    "id": "who-air-quality-energy-and-health",
+    "label": "WHO Air Quality, Energy and Health — Health Impacts",
+    "url": "https://www.who.int/teams/environment-climate-change-and-health/air-quality-energy-and-health/health-impacts"
+  },
+  {
+    "id": "who-exposure-air-pollution",
+    "label": "WHO Exposure to Air Pollution",
+    "url": "https://www.who.int/teams/environment-climate-change-and-health/air-quality-energy-and-health/health-impacts/exposure-air-pollution"
+  },
   {
     "id": "who-air-pollution-data",
-    "label": "WHO global air quality guidelines",
-    "url": "https://www.who.int/data/gho/data/themes/air-pollution"
+    "label": "WHO Global Air Quality Guidelines (Full PDF)",
+    "url": "https://iris.who.int/server/api/core/bitstreams/551b515e-2a32-4e1a-a58c-cdaecd395b19/content"
+  },
+  {
+    "id": "who-global-air-quality-guidelines-executive-summary",
+    "label": "WHO Global Air Quality Guidelines — Executive Summary (PDF)",
+    "url": "https://iris.who.int/server/api/core/bitstreams/b729bbc4-7032-4799-898e-d112faa16f22/content"
   },
   {
     "id": "doh-advisories",
@@ -42,133 +73,5 @@
     "id": "pubmed-pm25-sea-health",
     "label": "PubMed: PM2.5 Health Effects Southeast Asia",
     "url": "FILL_IN"
-  },
-  {
-    "id": "who-air-pollution-reduction",
-    "label": "Q n A: Air Pollution Reduction",
-    "url": "https://www.who.int/news-room/questions-and-answers/item/air-pollution-reducing-short-lived-climate-pollutants"
-  },
-  {
-    "id": "who-air-pollution-personal-interventions",
-    "label": "Q n A: Air Pollution Personal Interventions",
-    "url": "https://www.who.int/news-room/questions-and-answers/item/air-pollution-personal-interventions-and-risk-communication"
-  },
-
-  {
-    "id": "who-air-pollution-hia",
-    "label": "Q n A: The Role of Health Impact Assessment (HIA) in Decision-Making",
-    "url": "https://www.who.int/news-room/questions-and-answers/item/the-role-of-health-impact-assessment-(hia)-in-decision-making"
-  },
-
-  {
-    "id": "who-air-pollution-database",
-    "label": "WHO's Fifth WHO Air Quality Database of Over 6000 Cities Updated April 2022",
-    "url": "https://www.who.int/news-room/questions-and-answers/item/who-s-fifth-who-air-quality-database-of-over-6000-cities-updated-april-2022"
-  },
-
-  {
-    "id": "who-air-quality-database-2024",
-    "label": "Air Quality database Updates 2024 (Version Sixth)",
-    "url": "https://www.who.int/data/gho/data/themes/air-pollution/who-air-quality-database"
-  },
-
-  {
-    "id": "who-air-quality-database-2022",
-    "label": "Air Quality database Updates 2022 (Version Fifth)",
-    "url": "https://www.who.int/data/gho/data/themes/air-pollution/who-air-quality-database/2022"
-  },
-  {
-    "id": "who-air-quality-database-2018",
-    "label": "Air Quality database Updates 2018 (Version Fourth)",
-    "url": "https://www.who.int/data/gho/data/themes/air-pollution/who-air-quality-database/2018"
-  },
-
-  {
-    "id": "who-concentrations-of-fine-particulate-matter-(pm2-5)",
-    "label": "concentrations-of-fine-particulate-matter-(pm2-5)",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/concentrations-of-fine-particulate-matter-(pm2-5)"
-  },
-
-  {
-    "id": "who-air-pollution-attributable-death-rate-(per-100-000-population-age-standardized)",
-    "label": "ambient-air-pollution-attributable-death-rate-(per-100-000-population-age-standardized)",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/ambient-air-pollution-attributable-death-rate-(per-100-000-population-age-standardized)"
-  },
-
-  {
-    "id": "who-air-pollution-attributable-deaths",
-    "label": "ambient-air-pollution-attributable-deaths",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/ambient-air-pollution-attributable-deaths"
-  },
-
-  {
-    "id": "who-air-pollution-attributable-dalys",
-    "label": "mbd-aap-ambient-air-pollution-attributable-dalys",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/mbd-aap-ambient-air-pollution-attributable-dalys"
-  },
-
-  {
-    "id": "who-alcohol-attributable-dalys---age-standardized-rates",
-    "label": "alcohol-attributable-dalys--age-standardized-rates-(all-ages)--per-100-000-population",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/alcohol-attributable-dalys--age-standardized-rates-(all-ages)--per-100-000-population"
-  },
-
-  {
-    "id": "who-percent-of-all-dalys-attributable-to-alcohol",
-    "label": "percent-of-all-dalys-attributable-to-alcohol-(15-)",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/percent-of-all-dalys-attributable-to-alcohol-(15-)"
-  },
-
-  {
-    "id": "who-alcohol-attributable-dalys-lost-from-all-causes-(all-ages)-(number)",
-    "label": "alcohol-attributable-dalys-lost-from-all-causes-(all-ages)-(number)",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/alcohol-attributable-dalys-lost-from-all-causes-(all-ages)-(number)"
-  },
-
-  {
-    "id": "who-ambient-and-household-air-pollution-attributable-deaths",
-    "label": "ambient-and-household-air-pollution-attributable-deaths",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/ambient-and-household-air-pollution-attributable-deaths"
-  },
-
-  {
-    "id": "who-ambient-and-household-air-pollution-attributable-death-rate-(per-100-000-population-age-standardized)",
-    "label": "ambient-and-household-air-pollution-attributable-death-rate-(per-100-000-population-age-standardized)",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/ambient-and-household-air-pollution-attributable-death-rate-(per-100-000-population-age-standardized)"
-  },
-
-  {
-    "id": "who-mortality-rate-attributed-to-exposure-to-unsafe-wash-services-(per-100-000-population)-(sdg-3-9-2)",
-    "label": "mortality-rate-attributed-to-exposure-to-unsafe-wash-services-(per-100-000-population)-(sdg-3-9-2)",
-    "url": "https://www.who.int/data/gho/data/indicators/indicator-details/GHO/mortality-rate-attributed-to-exposure-to-unsafe-wash-services-(per-100-000-population)-(sdg-3-9-2)"
-  },
-
-  {
-    "id": "who-poison-control-and-unintentional-poisoning",
-    "label": "poison-control-and-unintentional-poisoning",
-    "url": "https://www.who.int/data/gho/data/themes/topics/indicator-groups/poison-control-and-unintentional-poisoning"
-  },
-
-  {
-    "id": "who-air-quality-energy-and-health",
-    "label": "air-quality-energy-and-health",
-    "url": "https://www.who.int/teams/environment-climate-change-and-health/air-quality-energy-and-health/health-impacts"
-  },
-
-  {
-    "id": "who-exposure-air-pollution",
-    "label": "exposure-air-pollution",
-    "url": "https://www.who.int/teams/environment-climate-change-and-health/air-quality-energy-and-health/health-impacts/exposure-air-pollution"
-  },
-
-  {
-    "id": "who-air-pollution-data",
-    "label": "WHO global air quality guidelines(PDF)",
-    "url": "https://iris.who.int/server/api/core/bitstreams/551b515e-2a32-4e1a-a58c-cdaecd395b19/content"
-  },
-  {
-    "id": "who-global-air-quality-guidelines-executive-summary",
-    "label": "WHO global air quality guidelines- Executive Summary (PDF)",
-    "url": "https://iris.who.int/server/api/core/bitstreams/b729bbc4-7032-4799-898e-d112faa16f22/content"
   }
 ]

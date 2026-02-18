@@ -1,29 +1,15 @@
 {
   "embeddedIds": [
     "who-air-pollution",
-    "who-air-pollution-attributable-dalys",
-    "who-air-pollution-attributable-death-rate-(per-100-000-population-age-standardized)",
-    "who-air-pollution-attributable-deaths",
     "who-air-pollution-database",
     "who-air-pollution-hia",
     "who-air-pollution-personal-interventions",
     "who-air-pollution-reduction",
-    "who-air-quality-database-2018",
-    "who-air-quality-database-2022",
-    "who-air-quality-database-2024",
     "who-air-quality-energy-and-health",
-    "who-alcohol-attributable-dalys---age-standardized-rates",
-    "who-alcohol-attributable-dalys-lost-from-all-causes-(all-ages)-(number)",
-    "who-ambient-and-household-air-pollution-attributable-death-rate-(per-100-000-population-age-standardized)",
-    "who-ambient-and-household-air-pollution-attributable-deaths",
     "who-aqg-2021-factsheet",
     "who-aqg-2021-summary",
-    "who-concentrations-of-fine-particulate-matter-(pm2-5)",
     "who-exposure-air-pollution",
     "who-global-air-quality-guidelines-executive-summary",
-    "who-household-air-pollution",
-    "who-mortality-rate-attributed-to-exposure-to-unsafe-wash-services-(per-100-000-population)-(sdg-3-9-2)",
-    "who-percent-of-all-dalys-attributable-to-alcohol",
-    "who-poison-control-and-unintentional-poisoning"
+    "who-household-air-pollution"
   ]
 }
