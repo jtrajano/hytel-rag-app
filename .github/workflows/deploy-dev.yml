@@ -1,0 +1,119 @@
+# ============================================================================
+# deploy-dev.yml - Development Environment Deployment
+# ============================================================================
+# Deploys to the "dev" environment when code is pushed to the dev branch.
+# Uses Workload Identity Federation (WIF) for secure, keyless authentication.
+#
+# Required GitHub Secrets:
+#   - GCP_WORKLOAD_IDENTITY_PROVIDER: WIF provider path
+#   - GCP_SA_EMAIL: Service account email
+# ============================================================================
+
+name: Deploy to Dev
+
+# ============================================================================
+# TRIGGERS
+# ============================================================================
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+# ============================================================================
+# CONCURRENCY
+# ============================================================================
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  deploy:
+    name: Build and Deploy to Dev
+    runs-on: ubuntu-latest
+
+    # ========================================================================
+    # PERMISSIONS - Required for WIF
+    # ========================================================================
+    permissions:
+      id-token: write # Required to request OIDC token
+      contents: read # Required to checkout repo
+
+    # ========================================================================
+    # ENVIRONMENT
+    # ========================================================================
+    environment:
+      name: dev
+      # TODO: Update with your dev URL
+      url: https://dev.example.com
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          # TODO: Update with your dev API URL
+          VITE_API_URL: https://dev-api.example.com
+
+      # ======================================================================
+      # WIF Authentication
+      # ======================================================================
+      # Uses secrets configured in GitHub repository settings.
+      # No hardcoded credentials - WIF provides short-lived tokens.
+      # ======================================================================
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      # ======================================================================
+      # Deploy to Firebase
+      # ======================================================================
+      # Firebase CLI auto-detects project from .firebaserc or authenticated
+      # service account. No explicit project ID needed.
+      # ======================================================================
+      - name: Deploy to Firebase Hosting
+        run: |
+          npm install -g firebase-tools
+          firebase deploy --only hosting
+
+      - name: Deploy Firebase Functions
+        run: firebase deploy --only functions
+        continue-on-error: true # Skip if no functions configured
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Dev Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: dev" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed by**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

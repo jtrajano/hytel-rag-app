@@ -1,0 +1,26 @@
+# Dependency Review
+# This workflow runs on PRs that modify dependencies to check for vulnerabilities
+
+name: Dependency Review
+
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '**/package.json'
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          # Optionally allow specific licenses
+          # allow-licenses: MIT, Apache-2.0

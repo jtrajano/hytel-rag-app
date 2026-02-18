@@ -1,0 +1,40 @@
+{
+  "name": "@repo/ui",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./Header": "./components/Header.tsx",
+    "./Counter": "./components/Counter.tsx",
+    "./Button": "./components/ui/button.tsx",
+    "./Card": "./components/ui/card.tsx",
+    "./utils": "./lib/utils.ts"
+  },
+  "scripts": {
+    "lint": "eslint \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "@repo/eslint-config": "workspace:*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.14",
+    "@types/react-dom": "^18.3.4",
+    "eslint": "^8.57.0",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "5.5.4",
+    "vitest": "^2.1.8"
+  }
+}

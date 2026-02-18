@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+.turbo
+.next
+out
+
+# Package manager
+pnpm-lock.yaml
+
+# IDE
+.idea
+.vscode
+
+# OS
+.DS_Store
+
+# Coverage
+coverage

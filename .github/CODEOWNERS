@@ -1,0 +1,30 @@
+# =============================================================================
+# CODEOWNERS
+# =============================================================================
+# This file defines who is responsible for code review in different parts
+# of the repository. GitHub will automatically request reviews from the
+# appropriate owners when a pull request modifies matching files.
+#
+# Learn more: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# =============================================================================
+
+# Default owners for everything in the repo
+# TODO: Replace with your team/usernames
+* @hytel-io/core-team
+
+# CI/CD and deployment configurations - require senior review
+.github/ @hytel-io/devops
+scripts/ @hytel-io/devops
+
+# Shared packages - affect all apps, require careful review
+packages/ @hytel-io/core-team
+
+# Frontend app
+apps/web/ @hytel-io/frontend
+
+# Backend functions
+apps/functions/ @hytel-io/backend
+
+# Documentation
+*.md @hytel-io/core-team
+docs/ @hytel-io/core-team

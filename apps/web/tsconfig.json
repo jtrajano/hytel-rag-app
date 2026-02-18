@@ -1,0 +1,9 @@
+{
+  "extends": "@repo/config/tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "types": ["vitest/globals"]
+  },
+  "include": ["src", "vite.config.ts"]
+}

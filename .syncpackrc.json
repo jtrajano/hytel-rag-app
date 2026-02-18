@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/syncpack/dist/schema.json",
+  "source": ["package.json", "apps/*/package.json", "packages/*/package.json"],
+  "lintFormatting": false,
+  "lintSemverRanges": false,
+  "lintVersions": true,
+  "versionGroups": [
+    {
+      "label": "Ignore workspace protocol packages",
+      "dependencies": ["@repo/**"],
+      "isIgnored": true
+    },
+    {
+      "label": "All other dependencies should have consistent versions",
+      "dependencies": ["**"],
+      "packages": ["**"]
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+# ============================================================================
+# deploy-main.yml - Production Environment Deployment
+# ============================================================================
+# Deploys to the "main" (production) environment.
+# Requires manual trigger and confirmation for safety.
+# Uses Workload Identity Federation (WIF) for secure, keyless authentication.
+#
+# Required GitHub Secrets:
+#   - GCP_WORKLOAD_IDENTITY_PROVIDER: WIF provider path
+#   - GCP_SA_EMAIL: Service account email
+# ============================================================================
+
+name: Deploy to Main (Production)
+
+# ============================================================================
+# TRIGGERS
+# ============================================================================
+on:
+  # Only manual trigger for production - safety first!
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: 'Type "production" to confirm deployment'
+        required: true
+        type: string
+      skip_tests:
+        description: 'Skip tests (use only if tests already passed in CI)'
+        required: false
+        type: boolean
+        default: false
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+# ============================================================================
+# CONCURRENCY
+# ============================================================================
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  # ==========================================================================
+  # Validation Job - Ensures intentional deployment
+  # ==========================================================================
+  validate:
+    name: Validate Production Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        if: ${{ github.event.inputs.confirm_production != 'production' }}
+        run: |
+          echo "::error::❌ You must type 'production' to confirm deployment"
+          echo "::error::This is a safety measure to prevent accidental production deployments."
+          exit 1
+
+      - name: Confirm deployment
+        run: |
+          echo "✅ Production deployment confirmed by @${{ github.actor }}"
+
+  # ==========================================================================
+  # Test Job - Run tests before production deployment
+  # ==========================================================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    if: ${{ github.event.inputs.skip_tests != 'true' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run full test suite
+        run: pnpm precheck
+
+  # ==========================================================================
+  # Deployment Job
+  # ==========================================================================
+  deploy:
+    name: Build and Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate, test]
+    if: |
+      always() && 
+      needs.validate.result == 'success' && 
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
+
+    # ========================================================================
+    # PERMISSIONS - Required for WIF
+    # ========================================================================
+    permissions:
+      id-token: write
+      contents: read
+
+    # ========================================================================
+    # ENVIRONMENT - Configure this in GitHub Settings > Environments
+    # ========================================================================
+    # Recommended: Set up required reviewers for production
+    environment:
+      name: main
+      # TODO: Update with your production URL
+      url: https://example.com
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build for Production
+        run: pnpm build
+        env:
+          NODE_ENV: production
+          # TODO: Update with your production API URL
+          VITE_API_URL: https://api.example.com
+
+      # ======================================================================
+      # WIF Authentication
+      # ======================================================================
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      # ======================================================================
+      # Deploy to Firebase
+      # ======================================================================
+      - name: Deploy to Firebase Hosting
+        run: |
+          npm install -g firebase-tools
+          firebase deploy --only hosting
+
+      - name: Deploy Firebase Functions
+        run: firebase deploy --only functions
+        continue-on-error: true
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Production Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: main (production)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed by**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Post-Deployment Checklist" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Verify application is accessible" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Check error monitoring (Sentry, etc.)" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Monitor performance metrics" >> $GITHUB_STEP_SUMMARY

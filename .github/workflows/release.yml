@@ -1,0 +1,65 @@
+# ============================================================================
+# release.yml - Automated Release Workflow with Changesets
+# ============================================================================
+# This workflow automates versioning and changelog generation using Changesets.
+# Uses WIF for authentication when interacting with releases.
+#
+# Required GitHub Secrets:
+#   - GCP_WORKLOAD_IDENTITY_PROVIDER: WIF provider path (if publishing packages)
+#   - GCP_SA_EMAIL: Service account email (if publishing packages)
+# ============================================================================
+
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create Release PR or Publish
+    runs-on: ubuntu-latest
+
+    # ========================================================================
+    # PERMISSIONS - Required for creating PRs and releases
+    # ========================================================================
+    permissions:
+      contents: write # Required to create releases and push tags
+      pull-requests: write # Required to create version PRs
+      id-token: write # Required for WIF (if publishing to GCP)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create Release Pull Request
+        uses: changesets/action@v1
+        with:
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
+          # This creates a PR to bump versions and update changelogs
+          # When merged, packages will be ready for release
+        env:
+          # Note: GITHUB_TOKEN is automatically provided by GitHub Actions
+          # and is sufficient for creating PRs within the same repo.
+          # No additional secrets needed for this workflow.
+          GITHUB_TOKEN: ${{ github.token }}
