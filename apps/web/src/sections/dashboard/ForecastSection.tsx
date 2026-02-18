@@ -1,16 +1,7 @@
 import { Cloud, CloudRain, Sun } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-
-interface ForecastDay {
-  label: string
-  aqi: number
-  category: string
-  aqiColor: string
-  badgeClass: string
-  WeatherIcon: React.ElementType
-  iconColor: string
-}
+import { ForecastDay } from '@/interface'
 
 const FORECAST_DAYS: ForecastDay[] = [
   {

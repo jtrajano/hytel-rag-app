@@ -4,15 +4,7 @@ import { User, Wind, Heart, Activity, Smile } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-
-type ProfileId = 'healthy' | 'asthma' | 'pregnant' | 'elderly' | 'child'
-
-interface ProfileCard {
-  id: ProfileId
-  icon: React.ElementType
-  title: string
-  description: string
-}
+import { ProfileCard, ProfileId } from '@/interface'
 
 const PROFILE_CARDS: ProfileCard[] = [
   {
