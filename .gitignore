@@ -87,3 +87,4 @@ database-debug.log
 server/dist
 public/dist
 *.pem
+agent
