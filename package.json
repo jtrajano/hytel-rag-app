@@ -21,9 +21,11 @@
     "release": "changeset publish",
     "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
     "ingest:openaq:historical": "node scripts/ingest-openaq-historical.mjs",
-    "extract:docs": "node scripts/extract-docs.mjs"
+    "extract:docs": "node scripts/extract-docs.mjs",
+    "fetch:docs": "node scripts/fetch-docs.mjs"
   },
   "dependencies": {
+    "cheerio": "^1.0.0",
     "pdf-parse": "^1.1.1"
   },
   "devDependencies": {

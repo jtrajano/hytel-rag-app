@@ -25,6 +25,8 @@ I have separated tasks by **Shared**, **Member 1 (Data & Backend)**, and **Membe
 - [ ] **Text Extraction:** Write script (`pypdf` or `BeautifulSoup`) to convert PDFs/HTML to raw text files.
 - [ ] **Data Cleaning:** Remove headers, footers, and page numbers; save clean text to `gs://aircare-sea-data/docs/clean`.
 
+Script: ` GCS_BUCKET=aircare-sea-data  pnpm fetch:docs`
+
 ---
 
 ### 📅 Phase 2: Pipelines & Storage (Days 3–4)

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -16,6 +16,20 @@ if (!bucket) {
 
 const inputDir = process.env.INPUT_DIR ?? 'tmp/docs'
 const outputDir = process.env.OUTPUT_DIR ?? 'tmp/docs/clean'
+const stateFile = 'scripts/docs-extracted.json'
+
+function loadExtracted() {
+  if (!existsSync(stateFile)) return new Set()
+  return new Set(JSON.parse(readFileSync(stateFile, 'utf8')).extractedFiles ?? [])
+}
+
+function saveExtracted(extracted) {
+  const current = existsSync(stateFile)
+    ? JSON.parse(readFileSync(stateFile, 'utf8'))
+    : { extractedIds: [], seenUrls: [] }
+  current.extractedFiles = [...extracted]
+  writeFileSync(stateFile, JSON.stringify(current, null, 2), 'utf8')
+}
 
 function cleanText(raw) {
   return (
@@ -50,21 +64,29 @@ async function extractPdf(filePath) {
 async function run() {
   mkdirSync(outputDir, { recursive: true })
 
-  const files = readdirSync(inputDir).filter((f) => extname(f).toLowerCase() === '.pdf')
+  const extracted = loadExtracted()
+  const allFiles = readdirSync(inputDir).filter((f) => extname(f).toLowerCase() === '.pdf')
+  const files = allFiles.filter((f) => {
+    if (extracted.has(f)) {
+      console.log(`Already extracted: ${f} — skipping`)
+      return false
+    }
+    return true
+  })
 
   if (files.length === 0) {
-    console.warn(`No PDF files found in ${inputDir}`)
+    console.log(allFiles.length > 0 ? 'Nothing new to extract.' : `No PDF files found in ${inputDir}`)
     process.exit(0)
   }
 
-  console.log(`Found ${files.length} PDF(s) in ${inputDir}`)
+  console.log(`Found ${files.length} new PDF(s) to extract\n`)
 
   for (const file of files) {
     const filePath = join(inputDir, file)
     const slug = basename(file, extname(file))
     const outPath = join(outputDir, `${slug}.txt`)
 
-    console.log(`\nExtracting: ${file}`)
+    console.log(`Extracting: ${file}`)
 
     try {
       const rawText = await extractPdf(filePath)
@@ -75,6 +97,9 @@ async function run() {
       const gcsDestination = `gs://${bucket}/docs/clean/${slug}.txt`
       uploadToGcs(outPath, gcsDestination)
       console.log(`  Uploaded -> ${gcsDestination}`)
+
+      extracted.add(file)
+      saveExtracted(extracted)
     } catch (err) {
       console.error(`  Failed to process ${file}: ${err.message}`)
     }
