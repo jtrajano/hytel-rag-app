@@ -66,6 +66,7 @@
 ### 1.2 Data Flow
 
 #### Flow 1: Live AQI Query
+
 ```
 User → Streamlit → Backend API → OpenAQ API → Response
                                 ↓
@@ -73,6 +74,7 @@ User → Streamlit → Backend API → OpenAQ API → Response
 ```
 
 #### Flow 2: Forecast Query
+
 ```
 User → Streamlit → Backend API → Vertex AI Endpoint → Response
                                        ↓
@@ -80,6 +82,7 @@ User → Streamlit → Backend API → Vertex AI Endpoint → Response
 ```
 
 #### Flow 3: RAG Health Q&A
+
 ```
 User Question → Streamlit → RAG Service
                               ↓
@@ -181,19 +184,19 @@ class AQIMeasurement:
     no2: Optional[float]
     aqi_value: int
     aqi_category: str
-    
+
 @dataclass
 class ForecastPoint:
     timestamp: datetime
     predicted_pm25: float
     confidence_lower: float
     confidence_upper: float
-    
+
 @dataclass
 class HealthProfile:
     sensitivity: str  # 'healthy', 'asthma', 'pregnant', 'elderly', 'child'
     custom_conditions: List[str] = None
-    
+
 @dataclass
 class RAGResponse:
     answer: str
@@ -215,11 +218,13 @@ class RAGResponse:
 Fetch current AQI for a city.
 
 **Request:**
+
 ```http
 GET /api/v1/aqi/current?city=Manila&country=Philippines
 ```
 
 **Response:**
+
 ```json
 {
   "status": "success",
@@ -246,6 +251,7 @@ GET /api/v1/aqi/current?city=Manila&country=Philippines
 ```
 
 **Error Response:**
+
 ```json
 {
   "status": "error",
@@ -264,11 +270,13 @@ GET /api/v1/aqi/current?city=Manila&country=Philippines
 Get 72-hour AQI forecast for a city.
 
 **Request:**
+
 ```http
 GET /api/v1/forecast/72h?city=Manila&country=Philippines
 ```
 
 **Response:**
+
 ```json
 {
   "status": "success",
@@ -286,7 +294,7 @@ GET /api/v1/forecast/72h?city=Manila&country=Philippines
         "confidence_interval": {
           "lower": 65.4,
           "upper": 78.8,
-          "confidence_level": 0.90
+          "confidence_level": 0.9
         }
       },
       {
@@ -297,7 +305,7 @@ GET /api/v1/forecast/72h?city=Manila&country=Philippines
         "confidence_interval": {
           "lower": 59.2,
           "upper": 77.4,
-          "confidence_level": 0.90
+          "confidence_level": 0.9
         }
       }
       // ... 72 hourly predictions total
@@ -319,6 +327,7 @@ GET /api/v1/forecast/72h?city=Manila&country=Philippines
 Ask a health-related question (RAG-powered).
 
 **Request:**
+
 ```http
 POST /api/v1/rag/ask
 Content-Type: application/json
@@ -335,6 +344,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "status": "success",
@@ -366,11 +376,13 @@ Content-Type: application/json
 **Endpoint:** `https://api.openaq.org/v2/latest`
 
 **Request:**
+
 ```http
 GET https://api.openaq.org/v2/latest?city=Manila&limit=1
 ```
 
 **Response (Simplified):**
+
 ```json
 {
   "results": [
@@ -404,12 +416,14 @@ GET https://api.openaq.org/v2/latest?city=Manila&limit=1
 **Technology:** Python + Flask/FastAPI  
 **Deployment:** Cloud Run  
 **Responsibilities:**
+
 - Fetch live AQI from OpenAQ
 - Call Vertex AI forecast endpoint
 - Cache responses in GCS
 - Handle rate limiting
 
 **Directory Structure:**
+
 ```
 backend/
 ├── app.py                 # Main Flask/FastAPI app
@@ -442,43 +456,43 @@ from models.schemas import AQIMeasurement
 class OpenAQClient:
     BASE_URL = "https://api.openaq.org/v2"
     CACHE_TTL = 3600  # 1 hour
-    
+
     def __init__(self, cache_manager):
         self.cache = cache_manager
-        
+
     def get_current_aqi(self, city: str, country: str) -> Optional[AQIMeasurement]:
         # Check cache first
         cache_key = f"aqi_{city}_{country}"
         cached = self.cache.get(cache_key)
         if cached and cached['timestamp'] > datetime.utcnow() - timedelta(seconds=self.CACHE_TTL):
             return AQIMeasurement(**cached['data'])
-        
+
         # Fetch from API
         response = requests.get(
             f"{self.BASE_URL}/latest",
             params={"city": city, "country": country, "limit": 1},
             timeout=10
         )
-        
+
         if response.status_code != 200:
             raise Exception(f"OpenAQ API error: {response.status_code}")
-        
+
         data = response.json()
         if not data.get('results'):
             return None
-            
+
         # Parse and cache
         result = self._parse_measurement(data['results'][0])
         self.cache.set(cache_key, {
             'data': result.__dict__,
             'timestamp': datetime.utcnow()
         })
-        
+
         return result
-    
+
     def _parse_measurement(self, raw_data: dict) -> AQIMeasurement:
         measurements = {m['parameter']: m['value'] for m in raw_data['measurements']}
-        
+
         return AQIMeasurement(
             city=raw_data['city'],
             country=raw_data['country'],
@@ -491,7 +505,7 @@ class OpenAQClient:
             aqi_value=self._calculate_aqi(measurements),
             aqi_category=self._categorize_aqi(self._calculate_aqi(measurements))
         )
-    
+
     def _calculate_aqi(self, measurements: dict) -> int:
         # Simplified AQI calculation (use EPA formula in production)
         pm25 = measurements.get('pm25', 0)
@@ -500,7 +514,7 @@ class OpenAQClient:
         elif pm25 <= 55.4: return int(100 + (pm25 - 35.4) * 2.5)
         elif pm25 <= 150.4: return int(150 + (pm25 - 55.4) * 0.53)
         else: return int(200 + (pm25 - 150.4) * 1.05)
-    
+
     def _categorize_aqi(self, aqi: int) -> str:
         if aqi <= 50: return "Good"
         elif aqi <= 100: return "Moderate"
@@ -517,6 +531,7 @@ class OpenAQClient:
 **Technology:** Python + LangChain + Vertex AI  
 **Location:** Integrated into Streamlit app  
 **Responsibilities:**
+
 - Embed user questions
 - Query Vector Search
 - Synthesize with Gemini
@@ -536,29 +551,29 @@ class RAGService:
         self.project_id = project_id
         self.location = location
         self.index_endpoint = index_endpoint
-        
+
         # Initialize models
         self.embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
         self.llm = GenerativeModel("gemini-1.5-flash-002")
-        
+
         # Vector Search client
         self.vector_client = aiplatform_v1.MatchServiceClient(
             client_options={"api_endpoint": f"{location}-aiplatform.googleapis.com"}
         )
-    
+
     def ask(self, question: str, context: dict) -> Dict:
         # Step 1: Embed the question
         query_embedding = self._embed_query(question)
-        
+
         # Step 2: Retrieve relevant chunks
         retrieved_chunks = self._retrieve_chunks(query_embedding, top_k=5)
-        
+
         # Step 3: Build prompt with context
         prompt = self._build_prompt(question, context, retrieved_chunks)
-        
+
         # Step 4: Generate answer with Gemini
         response = self.llm.generate_content(prompt)
-        
+
         # Step 5: Format response
         return {
             "answer": response.text,
@@ -566,11 +581,11 @@ class RAGService:
             "retrieved_chunks": retrieved_chunks,
             "confidence_score": self._calculate_confidence(retrieved_chunks)
         }
-    
+
     def _embed_query(self, text: str) -> List[float]:
         embeddings = self.embedding_model.get_embeddings([text])
         return embeddings[0].values
-    
+
     def _retrieve_chunks(self, query_embedding: List[float], top_k: int = 5) -> List[Dict]:
         # Call Vector Search
         request = aiplatform_v1.FindNeighborsRequest(
@@ -585,9 +600,9 @@ class RAGService:
                 )
             ]
         )
-        
+
         response = self.vector_client.find_neighbors(request)
-        
+
         # Parse results
         chunks = []
         for neighbor in response.nearest_neighbors[0].neighbors:
@@ -596,16 +611,16 @@ class RAGService:
                 "distance": neighbor.distance,
                 "metadata": neighbor.datapoint.restricts  # Contains source, title, content
             })
-        
+
         return chunks
-    
+
     def _build_prompt(self, question: str, context: dict, chunks: List[Dict]) -> str:
         # Extract chunk content
         retrieved_context = "\n\n".join([
             f"[Source: {c['metadata']['source']}]\n{c['metadata']['content']}"
             for c in chunks
         ])
-        
+
         prompt = f"""You are AirCare SEA, a health assistant for Southeast Asian users.
 
 Current Context:
@@ -627,13 +642,13 @@ Instructions:
 5. End with a clear recommendation (e.g., "avoid outdoor exercise", "wear N95 mask", "safe to proceed")
 
 Answer:"""
-        
+
         return prompt
-    
+
     def _extract_sources(self, chunks: List[Dict]) -> List[Dict]:
         sources = []
         seen = set()
-        
+
         for chunk in chunks:
             source_key = chunk['metadata']['source']
             if source_key not in seen:
@@ -643,9 +658,9 @@ Answer:"""
                     "relevance_score": 1 - chunk['distance']  # Convert distance to similarity
                 })
                 seen.add(source_key)
-        
+
         return sources
-    
+
     def _calculate_confidence(self, chunks: List[Dict]) -> float:
         # Average similarity score
         if not chunks:
@@ -706,10 +721,10 @@ class DocumentChunker:
             length_function=self._token_length,
             separators=["\n\n", "\n", ". ", " ", ""]
         )
-    
+
     def chunk_document(self, text: str, metadata: Dict) -> List[Dict]:
         chunks = self.splitter.split_text(text)
-        
+
         chunked_docs = []
         for i, chunk in enumerate(chunks):
             chunked_docs.append({
@@ -721,9 +736,9 @@ class DocumentChunker:
                     "total_chunks": len(chunks)
                 }
             })
-        
+
         return chunked_docs
-    
+
     def _token_length(self, text: str) -> int:
         # Approximation: 1 token ≈ 4 characters
         return len(text) // 4
@@ -747,7 +762,7 @@ def prepare_automl_dataset(
     lookback_days: int = 90
 ):
     client = bigquery.Client(project=project_id)
-    
+
     query = f"""
     SELECT
       city,
@@ -760,9 +775,9 @@ def prepare_automl_dataset(
     GROUP BY city, TIMESTAMP_TRUNC(timestamp, HOUR)
     ORDER BY city, timestamp
     """
-    
+
     df = client.query(query).to_dataframe()
-    
+
     # Pivot by city for multi-series forecasting
     pivot_df = df.pivot_table(
         index='timestamp',
@@ -770,10 +785,10 @@ def prepare_automl_dataset(
         values='pm25',
         aggfunc='first'
     ).reset_index()
-    
+
     # Save to GCS
     pivot_df.to_csv(output_path, index=False)
-    
+
     return output_path
 ```
 
@@ -790,14 +805,14 @@ def train_forecast_model(
     target_column: str = "pm25_Manila"
 ):
     aiplatform.init(project=project_id, location=location)
-    
+
     # Create dataset
     dataset = aiplatform.TimeSeriesDataset.create(
         display_name="aircare-aqi-timeseries",
         gcs_source=training_data_path,
         bq_source=None
     )
-    
+
     # Train AutoML model
     job = aiplatform.AutoMLForecastingTrainingJob(
         display_name="aircare-forecast-job",
@@ -807,7 +822,7 @@ def train_forecast_model(
             {"numeric": {"column_name": target_column}}
         ]
     )
-    
+
     model = job.run(
         dataset=dataset,
         target_column=target_column,
@@ -819,7 +834,7 @@ def train_forecast_model(
         budget_milli_node_hours=1000,
         model_display_name="aircare-aqi-forecaster-v1"
     )
-    
+
     return model
 ```
 
@@ -889,31 +904,31 @@ with col2:
 # Main Content
 if st.session_state.selected_city:
     city_name = st.session_state.selected_city
-    
+
     # Fetch AQI
     aqi_data = api_client.get_current_aqi(city_name)
-    
+
     # Display AQI Card
     st.metric(
         label=f"Current AQI in {city_name}",
         value=aqi_data['aqi'],
         delta=aqi_data['category']
     )
-    
+
     # Tabs
     tab1, tab2, tab3 = st.tabs(["📊 Forecast", "💬 Health Q&A", "📍 Map"])
-    
+
     with tab1:
         forecast_data = api_client.get_forecast(city_name)
         forecast_chart.render(forecast_data)
-    
+
     with tab2:
         chat_interface.render(
             city=city_name,
             current_aqi=aqi_data,
             health_profile=st.session_state.health_profile
         )
-    
+
     with tab3:
         aqi_map.render([aqi_data])
 else:
@@ -1085,21 +1100,21 @@ class RateLimiter:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.requests = defaultdict(list)
-    
+
     def is_allowed(self, client_id: str) -> bool:
         now = time.time()
         window_start = now - self.window_seconds
-        
+
         # Clean old requests
         self.requests[client_id] = [
             req_time for req_time in self.requests[client_id]
             if req_time > window_start
         ]
-        
+
         # Check limit
         if len(self.requests[client_id]) >= self.max_requests:
             return False
-        
+
         self.requests[client_id].append(now)
         return True
 
@@ -1109,7 +1124,7 @@ def rate_limit(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         client_id = request.remote_addr
-        
+
         if not rate_limiter.is_allowed(client_id):
             return jsonify({
                 "status": "error",
@@ -1118,7 +1133,7 @@ def rate_limit(f):
                     "message": "Too many requests. Please try again later."
                 }
             }), 429
-        
+
         return f(*args, **kwargs)
     return decorated_function
 ```
@@ -1145,17 +1160,17 @@ def retry_with_backoff(
         @wraps(func)
         def wrapper(*args, **kwargs):
             delay = base_delay
-            
+
             for attempt in range(max_retries):
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
                     if attempt == max_retries - 1:
                         raise
-                    
+
                     time.sleep(min(delay, max_delay))
                     delay *= 2  # Exponential backoff
-            
+
         return wrapper
     return decorator
 
@@ -1179,21 +1194,21 @@ class AQIService:
         self.openaq = openaq_client
         self.cache = cache_manager
         self.logger = logging.getLogger(__name__)
-    
+
     def get_aqi(self, city: str) -> Optional[dict]:
         try:
             # Try live data first
             return self.openaq.get_current_aqi(city)
         except Exception as e:
             self.logger.warning(f"OpenAQ API failed: {e}. Falling back to cache.")
-            
+
             # Fallback to cached data
             cached = self.cache.get(f"aqi_{city}")
             if cached:
                 cached['is_stale'] = True
                 cached['warning'] = "Showing cached data due to API unavailability"
                 return cached
-            
+
             # Ultimate fallback
             self.logger.error(f"No cached data available for {city}")
             return None
@@ -1215,12 +1230,12 @@ class StructuredLogger:
     def __init__(self, name: str):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.INFO)
-        
+
         # JSON formatter for Cloud Logging
         handler = logging.StreamHandler()
         handler.setFormatter(self._json_formatter())
         self.logger.addHandler(handler)
-    
+
     def _json_formatter(self):
         class JSONFormatter(logging.Formatter):
             def format(self, record):
@@ -1231,18 +1246,18 @@ class StructuredLogger:
                     "module": record.module,
                     "function": record.funcName,
                 }
-                
+
                 if record.exc_info:
                     log_obj["exception"] = self.formatException(record.exc_info)
-                
+
                 return json.dumps(log_obj)
-        
+
         return JSONFormatter()
-    
+
     def info(self, message: str, **kwargs):
         extra_data = json.dumps(kwargs) if kwargs else ""
         self.logger.info(f"{message} {extra_data}")
-    
+
     def error(self, message: str, **kwargs):
         extra_data = json.dumps(kwargs) if kwargs else ""
         self.logger.error(f"{message} {extra_data}")
@@ -1263,26 +1278,26 @@ class MetricsCollector:
     def __init__(self, project_id: str):
         self.client = monitoring_v3.MetricServiceClient()
         self.project_name = f"projects/{project_id}"
-    
+
     def record_api_latency(self, endpoint: str, duration_ms: float):
         series = monitoring_v3.TimeSeries()
         series.metric.type = "custom.googleapis.com/aircare/api_latency"
         series.resource.type = "global"
         series.metric.labels["endpoint"] = endpoint
-        
+
         now = time.time()
         seconds = int(now)
         nanos = int((now - seconds) * 10 ** 9)
-        
+
         interval = monitoring_v3.TimeInterval(
             {"end_time": {"seconds": seconds, "nanos": nanos}}
         )
-        
+
         point = monitoring_v3.Point({
             "interval": interval,
             "value": {"double_value": duration_ms}
         })
-        
+
         series.points = [point]
         self.client.create_time_series(name=self.project_name, time_series=[series])
 ```
@@ -1332,9 +1347,9 @@ def rag_service():
 def test_rag_retrieval(rag_service):
     question = "What does AQI 150 mean?"
     context = {"city": "Manila", "current_aqi": 150}
-    
+
     response = rag_service.ask(question, context)
-    
+
     assert response['answer'] is not None
     assert len(response['sources']) > 0
     assert response['confidence_score'] > 0.7
@@ -1348,16 +1363,16 @@ import requests
 
 def test_full_user_flow():
     base_url = "https://aircare-api-test.run.app"
-    
+
     # Step 1: Get current AQI
     aqi_response = requests.get(f"{base_url}/api/v1/aqi/current?city=Manila")
     assert aqi_response.status_code == 200
     aqi_data = aqi_response.json()['data']
-    
+
     # Step 2: Get forecast
     forecast_response = requests.get(f"{base_url}/api/v1/forecast/72h?city=Manila")
     assert forecast_response.status_code == 200
-    
+
     # Step 3: Ask RAG question
     rag_response = requests.post(
         f"{base_url}/api/v1/rag/ask",
@@ -1376,25 +1391,26 @@ def test_full_user_flow():
 
 ### 13.1 Latency Targets
 
-| **Endpoint** | **Target** | **Max Acceptable** |
-|--------------|------------|-------------------|
-| GET /aqi/current | < 500ms | 2s |
-| GET /forecast/72h | < 2s | 5s |
-| POST /rag/ask | < 3s | 8s |
-| Full page load (Streamlit) | < 4s | 10s |
+| **Endpoint**               | **Target** | **Max Acceptable** |
+| -------------------------- | ---------- | ------------------ |
+| GET /aqi/current           | < 500ms    | 2s                 |
+| GET /forecast/72h          | < 2s       | 5s                 |
+| POST /rag/ask              | < 3s       | 8s                 |
+| Full page load (Streamlit) | < 4s       | 10s                |
 
 ### 13.2 Throughput Targets
 
-| **Metric** | **Target** |
-|------------|------------|
-| Concurrent users | 50 |
-| Requests/minute | 500 |
-| Vector Search queries/second | 10 |
-| Gemini API calls/minute | 60 |
+| **Metric**                   | **Target** |
+| ---------------------------- | ---------- |
+| Concurrent users             | 50         |
+| Requests/minute              | 500        |
+| Vector Search queries/second | 10         |
+| Gemini API calls/minute      | 60         |
 
 ### 13.3 Optimization Strategies
 
 **Caching:**
+
 ```python
 # Cache OpenAQ responses for 1 hour
 # Cache forecast results for 3 hours
@@ -1402,12 +1418,14 @@ def test_full_user_flow():
 ```
 
 **Batch Processing:**
+
 ```python
 # Batch embed multiple chunks together
 # Prefetch forecasts for top 5 cities daily
 ```
 
 **Connection Pooling:**
+
 ```python
 # Reuse HTTP connections to external APIs
 # Maintain persistent gRPC connections to Vertex AI
