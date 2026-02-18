@@ -12,6 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@repo/functions": "workspace:*",
     "@repo/shared": "workspace:*",
@@ -25,6 +27,7 @@
     "lucide-react": "^0.574.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^7.13.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"
   },

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(dir:*)",
+      "Bash(pnpm --filter web add:*)",
+      "Bash(pnpm dlx shadcn@latest add:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node_modules/.bin/vite build:*)"
+    ]
+  }
+}
