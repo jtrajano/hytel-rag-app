@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Loader2, MessageSquare } from 'lucide-react'
+import { Send, Bot, User, Loader2, MessageSquare, ChevronLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -181,14 +181,22 @@ const ChatSection = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="-ml-2 gap-1 text-muted-foreground hover:text-foreground"
+          >
+            <Link to="/dashboard">
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </Link>
+          </Button>
           <div>
             <h1 className="text-lg font-semibold text-foreground">Ask AI</h1>
             <p className="text-sm text-muted-foreground">Air quality &amp; environmental Q&amp;A</p>
           </div>
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-            <Link to="/dashboard">Dashboard</Link>
-          </Button>
         </div>
       </header>
 

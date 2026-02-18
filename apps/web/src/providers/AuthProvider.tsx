@@ -3,6 +3,7 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   signOut as firebaseSignOut,
+  getAdditionalUserInfo,
   type User,
 } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
@@ -11,6 +12,7 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 interface AuthContextValue {
   user: User | null
   loading: boolean
+  signInRedirect: string | null
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
 }
@@ -20,6 +22,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [signInRedirect, setSignInRedirect] = useState<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, firebaseUser => {
@@ -33,7 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await signInWithPopup(auth, googleProvider)
     const u = result.user
 
-    const isNewUser = u.metadata.creationTime === u.metadata.lastSignInTime
+    const isNewUser = getAdditionalUserInfo(result)?.isNewUser ?? false
+
+    // Set redirect target BEFORE Firestore awaits so it's ready when
+    // onAuthStateChanged updates user state and PublicOnlyRoute re-renders
+    setSignInRedirect(isNewUser ? '/onboarding/profile' : '/dashboard')
 
     const userRef = doc(db, 'users', u.uid)
 
@@ -68,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInRedirect, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   )

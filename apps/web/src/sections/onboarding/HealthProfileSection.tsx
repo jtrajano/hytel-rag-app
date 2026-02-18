@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { User, Wind, Heart, Activity, Smile } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { User, Wind, Heart, Activity, Smile, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { ProfileCard, ProfileId } from '@/interface'
+import { type ProfileCard, type ProfileId } from '@/interface'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from '@/hooks/useAuth'
 
 const PROFILE_CARDS: ProfileCard[] = [
   {
@@ -39,12 +42,38 @@ const PROFILE_CARDS: ProfileCard[] = [
   },
 ]
 
+const MAX_SELECTIONS = 3
+
 const HealthProfileSection = () => {
-  const [selectedProfile, setSelectedProfile] = useState<ProfileId | null>(null)
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [selectedProfiles, setSelectedProfiles] = useState<ProfileId[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+
+  const toggleProfile = (id: ProfileId) => {
+    setSelectedProfiles(prev => {
+      if (prev.includes(id)) return prev.filter(p => p !== id)
+      if (prev.length >= MAX_SELECTIONS) return prev // silently cap at 3
+      return [...prev, id]
+    })
+  }
+
+  const handleContinue = async () => {
+    if (selectedProfiles.length === 0 || !user) return
+    setIsSaving(true)
+    try {
+      await setDoc(doc(db, 'users', user.uid), { healthProfile: selectedProfiles }, { merge: true })
+      navigate('/onboarding/city')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const count = selectedProfiles.length
 
   return (
     <div className="min-h-screen flex flex-col px-4 py-8 max-w-lg mx-auto">
-      {/* Step Indicator */}
+      {/* Step indicator */}
       <div className="flex items-center gap-2 mb-8">
         <div className="flex gap-1.5">
           <div className="w-6 h-1.5 rounded-full bg-primary" />
@@ -55,27 +84,48 @@ const HealthProfileSection = () => {
 
       {/* Heading */}
       <h1 className="text-2xl font-bold text-foreground mb-2">Tell us about your health profile</h1>
-      <p className="text-sm text-muted-foreground mb-8">
+      <p className="text-sm text-muted-foreground mb-1">
         We'll personalize air quality recommendations based on your needs
       </p>
 
-      {/* Profile Cards Grid */}
+      {/* Selection counter */}
+      <p
+        className={cn(
+          'text-xs font-medium mb-8',
+          count === MAX_SELECTIONS ? 'text-primary' : 'text-muted-foreground'
+        )}
+      >
+        Select up to {MAX_SELECTIONS} &middot;{' '}
+        <span className={cn(count > 0 && 'font-semibold text-foreground')}>{count}</span> selected
+      </p>
+
+      {/* Profile cards grid */}
       <div className="grid grid-cols-2 gap-3 mb-8">
         {PROFILE_CARDS.map(profile => {
           const Icon = profile.icon
-          const isSelected = selectedProfile === profile.id
+          const isSelected = selectedProfiles.includes(profile.id)
+          const isDisabled = !isSelected && count >= MAX_SELECTIONS
 
           return (
             <Card
               key={profile.id}
-              onClick={() => setSelectedProfile(profile.id)}
+              onClick={() => !isDisabled && toggleProfile(profile.id)}
               className={cn(
-                'cursor-pointer transition-all duration-200 hover:shadow-md',
+                'relative cursor-pointer transition-all duration-200',
                 isSelected
                   ? 'border-primary ring-2 ring-primary ring-offset-1 bg-primary/5'
-                  : 'border-border hover:border-primary/50'
+                  : isDisabled
+                    ? 'border-border opacity-40 cursor-not-allowed'
+                    : 'border-border hover:border-primary/50 hover:shadow-sm'
               )}
             >
+              {/* Checkmark badge */}
+              {isSelected && (
+                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="w-3 h-3 text-primary-foreground" />
+                </div>
+              )}
+
               <CardContent className="p-4 flex flex-col gap-2">
                 <div
                   className={cn(
@@ -106,9 +156,14 @@ const HealthProfileSection = () => {
         })}
       </div>
 
-      {/* Continue Button */}
-      <Button asChild size="lg" className="w-full rounded-lg">
-        <Link to="/onboarding/city">Continue</Link>
+      {/* Continue button */}
+      <Button
+        size="lg"
+        className="w-full rounded-lg"
+        disabled={count === 0 || isSaving}
+        onClick={handleContinue}
+      >
+        {isSaving ? 'Saving…' : 'Continue'}
       </Button>
     </div>
   )

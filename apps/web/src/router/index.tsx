@@ -10,11 +10,11 @@ import SearchPage from '@/pages/search/SearchPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import ChatPage from '@/pages/chat/ChatPage'
 
-// Redirects authenticated users to /dashboard; otherwise renders children
+// Redirects authenticated users based on signInRedirect (new user → onboarding, returning → dashboard)
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, loading, signInRedirect } = useAuth()
   if (loading) return null
-  if (user) return <Navigate to="/dashboard" replace />
+  if (user) return <Navigate to={signInRedirect ?? '/dashboard'} replace />
   return <>{children}</>
 }
 
