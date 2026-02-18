@@ -43,8 +43,10 @@ Script: ` GCS_BUCKET=aircare-sea-data  pnpm fetch:docs`
 #### **Member 1 (Data & Forecast)**
 
 - [x] **BigQuery Setup:** Create dataset `aircare_sea` and table `aqi_measurements` using SQL from TDD Section 2.1.
-- [] **Data Loading:** Load the 90-day historical data from GCS into BigQuery.
+- [x] **Data Loading:** Load the 90-day historical data from GCS into BigQuery.
 - [ ] **AutoML Prep:** Write `prepare_training_data.py` (TDD 6.1) to pivot BigQuery data into the CSV format required by Vertex AI (Timestamp, Target, Series ID).
+
+Script: `LOCAL_DATA_DIR=tmp/openaq BQ_PROJECT=aircare-sea node scripts/load-to-bigquery.mjs`
 
 #### **Member 2 (RAG & App)**
 
