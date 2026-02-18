@@ -220,10 +220,12 @@ bq show aircare-sea:aircare_sea.aqi_measurements
 
 ### 5.1 Store API Keys
 
+OPENAQ_API_KEY="fa2b63681e9f2eecf9bd04a97484be9be6bc5fc9c22c1a6faccc8303a90a6f1b"
+
 ```bash
 # OpenAQ API key
 echo -n "YOUR_OPENAQ_API_KEY" | \
-  gcloud secrets create OPENAQ_API_KEY \
+  gcloud secrets create $OPENAQ_API_KEY \
     --data-file=- \
     --replication-policy="automatic"
 
@@ -248,14 +250,24 @@ Sign up at [https://explore.openaq.org](https://explore.openaq.org) → API Keys
 ### 6.2 Test the API (curl)
 
 ```bash
-# Test: fetch latest Manila readings
-curl -X GET \
-  "https://api.openaq.org/v2/latest?city=Manila&limit=5" \
-  -H "X-API-Key: YOUR_OPENAQ_API_KEY" \
+# NOTE: OpenAQ v1/v2 endpoints were retired on 2025-01-31.
+# Use v3 endpoints only.
+
+# 1) Find a Manila location ID
+curl -s -X GET \
+  "https://api.openaq.org/v3/locations?city=Manila&limit=1" \
+  -H "X-API-Key: $OPENAQ_API_KEY" \
+  | python3 -m json.tool
+
+# 2) Replace LOCATION_ID with results[0].id from the response above,
+#    then fetch latest measurements for that location
+curl -s -X GET \
+  "https://api.openaq.org/v3/locations/8118/latest?limit=5" \
+  -H "X-API-Key:  $OPENAQ_API_KEY" \
   | python3 -m json.tool
 ```
 
-Expected: JSON with `results` array containing PM2.5, PM10, NO2 measurements.
+Expected: JSON with a `results` array containing latest pollutant measurements (for example PM2.5, PM10, NO2 where available) plus `datetime`, `coordinates`, and sensor/location IDs.
 
 ### 6.3 Test Target Cities
 
@@ -265,14 +277,13 @@ Run this to validate coverage for all target cities:
 #!/bin/bash
 # scripts/validate_openaq_cities.sh
 
-API_KEY="YOUR_OPENAQ_API_KEY"
 CITIES=("Manila" "Jakarta" "Bangkok" "Ho+Chi+Minh+City" "Kuala+Lumpur")
 
 for city in "${CITIES[@]}"; do
   echo -n "Testing $city... "
   response=$(curl -s -o /dev/null -w "%{http_code}" \
-    "https://api.openaq.org/v2/latest?city=${city}&limit=1" \
-    -H "X-API-Key: $API_KEY")
+    "https://api.openaq.org/v3/locations?city=${city}&limit=1" \
+    -H "X-API-Key: $OPENAQ_API_KEY")
 
   if [ "$response" = "200" ]; then
     echo "✓ OK"
