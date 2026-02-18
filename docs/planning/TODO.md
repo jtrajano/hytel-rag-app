@@ -8,15 +8,15 @@ I have separated tasks by **Shared**, **Member 1 (Data & Backend)**, and **Membe
 
 #### **Shared / Admin**
 
-- [ ] **GCP Project Setup:** Create project `aircare-sea`.
-- [ ] **Enable APIs:** Run TDD Section 8.1 commands (Vertex AI, BigQuery, Run, Storage, Secret Manager).
-- [ ] **GitHub Repo:** Initialize repo with structure from TDD Section 14.1.
-- [ ] **Secrets:** Store API Keys (OpenAQ, etc.) in GCP Secret Manager.
+- [x] **GCP Project Setup:** Create project `aircare-sea`.
+- [x] **Enable APIs:** Run TDD Section 8.1 commands (Vertex AI, BigQuery, Run, Storage, Secret Manager).
+- [x] **GitHub Repo:** Initialize repo with structure from TDD Section 14.1.
+- [x] **Secrets:** Store API Keys (OpenAQ, etc.) in GCP Secret Manager.
 
 #### **Member 1 (Data & Forecast)**
 
-- [ ] **GCS Bucket:** Create `gs://aircare-sea-data` with folders `/raw`, `/processed`, `/models`.
-- [ ] **OpenAQ Client:** Write `openaq_client.py` (TDD 4.1) to fetch live data for target cities (Manila, Jakarta, Bangkok, etc.).
+- [x] **GCS Bucket:** Create `gs://aircare-sea-data` with folders `/raw`, `/processed`, `/models`.
+- [] **OpenAQ Client:** Write `openaq_client.py` (TDD 4.1) to fetch live data for target cities (Manila, Jakarta, Bangkok, etc.).
 - [ ] **Ingestion Script:** Create script to fetch _historical_ data (last 90 days) from OpenAQ and save as CSV/JSON to GCS.
 
 #### **Member 2 (RAG & App)**
@@ -33,7 +33,7 @@ I have separated tasks by **Shared**, **Member 1 (Data & Backend)**, and **Membe
 
 #### **Member 1 (Data & Forecast)**
 
-- [ ] **BigQuery Setup:** Create dataset `aircare_sea` and table `aqi_measurements` using SQL from TDD Section 2.1.
+- [x] **BigQuery Setup:** Create dataset `aircare_sea` and table `aqi_measurements` using SQL from TDD Section 2.1.
 - [ ] **Data Loading:** Load the 90-day historical data from GCS into BigQuery.
 - [ ] **AutoML Prep:** Write `prepare_training_data.py` (TDD 6.1) to pivot BigQuery data into the CSV format required by Vertex AI (Timestamp, Target, Series ID).
 
