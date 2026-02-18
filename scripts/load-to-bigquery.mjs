@@ -245,7 +245,23 @@ VALUES
    CURRENT_TIMESTAMP())
 `.trim()
 
-  run('bq', ['query', `--project_id=${project}`, '--use_legacy_sql=false', '--nouse_cache', sql])
+  // Pipe SQL via stdin instead of passing as a CLI argument.
+  // On Windows, shell: true + cmd.exe mangles multi-line strings and backticks
+  // when they appear in positional arguments.
+  const result = spawnSync(
+    'bq',
+    ['query', `--project_id=${project}`, '--use_legacy_sql=false', '--nouse_cache'],
+    {
+      input: sql,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
+    },
+  )
+
+  if (result.status !== 0) {
+    const stderr = result.stderr?.toString().trim() ?? ''
+    throw new Error(`MERGE query failed:\n${stderr}`)
+  }
 }
 
 function bqDropTable(project, dataset, table) {

@@ -22,6 +22,7 @@
     "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
     "ingest:openaq:historical": "node scripts/ingest-openaq-historical.mjs",
     "load:bq": "node scripts/load-to-bigquery.mjs",
+    "prepare:training": "python scripts/prepare_training_data.py",
     "extract:docs": "node scripts/extract-docs.mjs",
     "fetch:docs": "node scripts/fetch-docs.mjs"
   },

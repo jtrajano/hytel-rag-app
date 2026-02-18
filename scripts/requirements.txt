@@ -1,0 +1,10 @@
+# Python dependencies for scripts/
+# Install with: pip install -r scripts/requirements.txt
+
+# BigQuery client + pandas integration (for prepare_training_data.py)
+google-cloud-bigquery[pandas]>=3.0.0
+
+# GCS client (for future Python scripts that read/write GCS directly)
+google-cloud-storage>=2.0.0
+
+google-cloud-bigquery-storage
