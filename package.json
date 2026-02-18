@@ -20,7 +20,11 @@
     "version": "changeset version",
     "release": "changeset publish",
     "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
-    "ingest:openaq:historical": "node scripts/ingest-openaq-historical.mjs"
+    "ingest:openaq:historical": "node scripts/ingest-openaq-historical.mjs",
+    "extract:docs": "node scripts/extract-docs.mjs"
+  },
+  "dependencies": {
+    "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
