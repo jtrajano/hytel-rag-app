@@ -24,7 +24,8 @@
     "load:bq": "node scripts/load-to-bigquery.mjs",
     "prepare:training": "python scripts/prepare_training_data.py",
     "extract:docs": "node scripts/extract-docs.mjs",
-    "fetch:docs": "node scripts/fetch-docs.mjs"
+    "fetch:docs": "node scripts/fetch-docs.mjs",
+    "chunk:docs": "python scripts/chunk_documents.py"
   },
   "dependencies": {
     "cheerio": "^1.0.0",

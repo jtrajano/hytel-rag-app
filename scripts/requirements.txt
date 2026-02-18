@@ -8,3 +8,6 @@ google-cloud-bigquery[pandas]>=3.0.0
 google-cloud-storage>=2.0.0
 
 google-cloud-bigquery-storage
+
+# Text chunking for RAG pipeline (for chunk_documents.py)
+langchain-text-splitters>=0.3.0

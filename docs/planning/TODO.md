@@ -48,11 +48,20 @@ Script: ` GCS_BUCKET=aircare-sea-data  pnpm fetch:docs`
 
 Script: `LOCAL_DATA_DIR=tmp/openaq BQ_PROJECT=aircare-sea node scripts/load-to-bigquery.mjs`
 
-Script: `BQ_PROJECT=aircare-sea python scripts/prepare_training_data.py`
+`# One-time setup
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r scripts/requirements.txt`
+
+Script: `BQ_PROJECT=aircare-sea pnpm prepare:training`
+`gcloud auth application-default login
 
 #### **Member 2 (RAG & App)**
 
-- [ ] **Chunking:** Implement `DocumentChunker` (TDD 5.2) with 512 token size / 100 overlap.
+- [x] **Chunking:** Implement `DocumentChunker` (TDD 5.2) with 512 token size / 100 overlap.
+
+Script: `GCS_BUCKET=aircare-sea-data pnpm chunk:docs`
+
 - [ ] **Embedding Generation:** Run batch job using `text-embedding-004` to create vectors from chunks.
 - [ ] **Vector Search Index:** Create and deploy Vertex AI Vector Search Index.
 
