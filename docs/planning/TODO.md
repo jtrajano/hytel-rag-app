@@ -19,11 +19,18 @@ I have separated tasks by **Shared**, **Member 1 (Data & Backend)**, and **Membe
 - [x] **OpenAQ Client:** Write `openaq_client.py` (TDD 4.1) to fetch live data for target cities (Manila, Jakarta, Bangkok, etc.).
 - [x] **Ingestion Script:** Create script to fetch _historical_ data (last 90 days) from OpenAQ and save as CSV/JSON to GCS.
 
+```powershell
+$env:CITIES=""  ## default to array of cities
+$env:DAYS_BACK="" ## default to 90 days
+node --env-file=.env.local scripts/ingest-openaq-historical.mjs
+
+```
+
 #### **Member 2 (RAG & App)**
 
-- [ ] **Document Collection:** Download PDFs for WHO Guidelines (2021), DOH Advisories, and PubMed abstracts.
-- [ ] **Text Extraction:** Write script (`pypdf` or `BeautifulSoup`) to convert PDFs/HTML to raw text files.
-- [ ] **Data Cleaning:** Remove headers, footers, and page numbers; save clean text to `gs://aircare-sea-data/docs/clean`.
+- [ ] **Document Collection:** Download PDFs for WHO Guidelines (2021), DOH Advisories, and PubMed abstracts. **Partially done only**
+- [x] **Text Extraction:** Write script (`pypdf` or `BeautifulSoup`) to convert PDFs/HTML to raw text files.
+- [x] **Data Cleaning:** Remove headers, footers, and page numbers; save clean text to `gs://aircare-sea-data/docs/clean`.
 
 Script: ` GCS_BUCKET=aircare-sea-data  pnpm fetch:docs`
 
@@ -36,7 +43,7 @@ Script: ` GCS_BUCKET=aircare-sea-data  pnpm fetch:docs`
 #### **Member 1 (Data & Forecast)**
 
 - [x] **BigQuery Setup:** Create dataset `aircare_sea` and table `aqi_measurements` using SQL from TDD Section 2.1.
-- [ ] **Data Loading:** Load the 90-day historical data from GCS into BigQuery.
+- [] **Data Loading:** Load the 90-day historical data from GCS into BigQuery.
 - [ ] **AutoML Prep:** Write `prepare_training_data.py` (TDD 6.1) to pivot BigQuery data into the CSV format required by Vertex AI (Timestamp, Target, Series ID).
 
 #### **Member 2 (RAG & App)**

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -43,6 +44,8 @@ const dateFrom = from.toISOString()
 const runStamp = now.toISOString().replaceAll(':', '-')
 
 const sanitizeName = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+const measurementId = (sensorId, parameter, datetimeUtc) =>
+  createHash('sha256').update(`${sensorId}|${parameter}|${datetimeUtc ?? ''}`).digest('hex').slice(0, 16)
 const csvEscape = (value) => {
   if (value === undefined || value === null) return ''
   const text = String(value)
@@ -125,9 +128,9 @@ async function getSensorMeasurements(sensorId, parameter) {
         sensorId,
         parameter,
         value: item.value ?? null,
-        unit: item.unit ?? null,
-        datetimeUtc: item.datetime?.utc ?? null,
-        datetimeLocal: item.datetime?.local ?? null,
+        unit: item.parameter?.units ?? null,
+        datetimeUtc: item.period?.datetimeFrom?.utc ?? null,
+        datetimeLocal: item.period?.datetimeFrom?.local ?? null,
       })
     }
 
@@ -149,6 +152,7 @@ function writeFiles(city, rows) {
   writeFileSync(jsonPath, JSON.stringify(rows, null, 2), 'utf8')
 
   const headers = [
+    'measurement_id',
     'city',
     'country',
     'locationId',
@@ -223,6 +227,7 @@ async function run() {
         }
         for (const measurement of measurements) {
           locationRows.push({
+            measurement_id: measurementId(measurement.sensorId, measurement.parameter, measurement.datetimeUtc),
             city,
             country: location.country?.code ?? null,
             locationId: location.id,
