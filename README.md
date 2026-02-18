@@ -113,6 +113,15 @@ import { Button } from '@repo/ui/Button'
 import { Card, CardHeader, CardContent } from '@repo/ui/Card'
 ```
 
+### Ingest OpenAQ Historical Data
+
+```powershell
+$env:CITIES=""  ## default to array of cities
+$env:DAYS_BACK="" ## default to 90 days
+node --env-file=.env.local scripts/ingest-openaq-historical.mjs
+
+```
+
 ### Type-Safe API (`apps/functions`)
 
 tRPC provides end-to-end type safety:

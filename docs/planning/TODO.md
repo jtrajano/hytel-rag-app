@@ -16,8 +16,8 @@ I have separated tasks by **Shared**, **Member 1 (Data & Backend)**, and **Membe
 #### **Member 1 (Data & Forecast)**
 
 - [x] **GCS Bucket:** Create `gs://aircare-sea-data` with folders `/raw`, `/processed`, `/models`.
-- [] **OpenAQ Client:** Write `openaq_client.py` (TDD 4.1) to fetch live data for target cities (Manila, Jakarta, Bangkok, etc.).
-- [ ] **Ingestion Script:** Create script to fetch _historical_ data (last 90 days) from OpenAQ and save as CSV/JSON to GCS.
+- [x] **OpenAQ Client:** Write `openaq_client.py` (TDD 4.1) to fetch live data for target cities (Manila, Jakarta, Bangkok, etc.).
+- [x] **Ingestion Script:** Create script to fetch _historical_ data (last 90 days) from OpenAQ and save as CSV/JSON to GCS.
 
 #### **Member 2 (RAG & App)**
 
