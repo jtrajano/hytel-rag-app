@@ -45,6 +45,9 @@ Script: ` GCS_BUCKET=aircare-sea-data  pnpm fetch:docs`
 - [x] **BigQuery Setup:** Create dataset `aircare_sea` and table `aqi_measurements` using SQL from TDD Section 2.1.
 - [x] **Data Loading:** Load the 90-day historical data from GCS into BigQuery.
 - [x] **AutoML Prep:** Write `prepare_training_data.py` (TDD 6.1) to pivot BigQuery data into the CSV format required by Vertex AI (Timestamp, Target, Series ID).
+- [x] **Kaggle Reference Data:** Load Kaggle Global Air Pollution Dataset (23 463 cities) into BigQuery as `global_aqi_reference` — fallback city lookup and multi-pollutant context for RAG prompts.
+
+Script: `BQ_PROJECT=aircare-sea pnpm load:kaggle`
 
 Script: `LOCAL_DATA_DIR=tmp/openaq BQ_PROJECT=aircare-sea node scripts/load-to-bigquery.mjs`
 
@@ -55,6 +58,10 @@ pip install -r scripts/requirements.txt`
 
 Script: `BQ_PROJECT=aircare-sea pnpm prepare:training`
 `gcloud auth application-default login
+
+### Kaggle reference data (download dataset in your machine and set the path inside scripts/load_kaggle_aqi.py)
+
+Script: `BQ_PROJECT=aircare-sea pnpm load:kaggle`
 
 #### **Member 2 (RAG & App)**
 
@@ -80,7 +87,14 @@ gcloud firestore indexes composite create \
   --field-config=field-path=embedding,vector-config='{"dimension":"768","flat":"{}"}'
 ```
 
----
+Test vector search:
+
+```bash
+python -m venv .venv // one time setup if .venv does not exist
+.venv/Scripts/activate
+pip install -r scripts/requirements.txt
+VERTEX_PROJECT=aircare-sea python scripts/test_vector_query.py "Can I jog outside?"
+```
 
 ### 📅 Phase 3: AI Models (Days 5–6)
 

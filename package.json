@@ -27,7 +27,8 @@
     "fetch:docs": "node scripts/fetch-docs.mjs",
     "chunk:docs": "python scripts/chunk_documents.py",
     "embed:docs": "python scripts/generate_embeddings.py",
-    "index:docs": "python scripts/save_to_firestore.py"
+    "index:docs": "python scripts/save_to_firestore.py",
+    "load:kaggle": "python scripts/load_kaggle_aqi.py"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
