@@ -3,14 +3,16 @@
  *
  * Flow:
  *   1. Try to find an exact/partial city match in BigQuery global_aqi_reference
- *   2. If no city match, aggregate all cities in a matching country (national average)
- *   3. Compute numeric AQI from PM2.5 using the EPA formula
- *   4. Call Gemini to generate visitor guidelines, prevention tips, and improvement actions
- *   5. Return a structured result with a `type` field: 'city' | 'country'
+ *   2. If no city match, try OpenAQ live API for wider global coverage
+ *   3. If still no city match, aggregate country average from both BigQuery tables
+ *   4. Compute numeric AQI from PM2.5 using the EPA formula
+ *   5. Call Gemini to generate visitor guidelines, prevention tips, and improvement actions
+ *   6. Return a structured result with a `type` field: 'city' | 'country'
  */
 
 import { BigQuery } from '@google-cloud/bigquery'
 import { VertexAI } from '@google-cloud/vertexai'
+import { OpenAQClient } from './openaqClient'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -178,11 +180,14 @@ export class SearchService {
   private readonly projectId: string
   private readonly bq: BigQuery
   private readonly vertexai: VertexAI
+  private readonly openaq: OpenAQClient | null
 
   constructor(projectId: string) {
     this.projectId = projectId
     this.bq = new BigQuery({ projectId })
     this.vertexai = new VertexAI({ project: projectId, location: LOCATION })
+    const apiKey = process.env.OPENAQ_API_KEY ?? ''
+    this.openaq = apiKey ? new OpenAQClient({ apiKey }) : null
   }
 
   // ── Step 1: City fetch — the query must appear inside the city name ──────────
@@ -221,7 +226,32 @@ export class SearchService {
     }
   }
 
-  // ── Step 2: Country fetch — aggregate AVG across all cities in the country ──
+  // ── Step 2: OpenAQ live API — wider global city coverage ──────────────────
+  // Only attempted when BigQuery city lookup misses. Skipped silently if
+  // OPENAQ_API_KEY is not set (this.openaq will be null).
+
+  private async fetchOpenAQCityData(searchQuery: string) {
+    if (!this.openaq) return null
+    try {
+      const result = await this.openaq.getCurrentByCity(searchQuery)
+      if (!result?.measurements?.length) return null
+      const get = (param: string) =>
+        result.measurements!.find(m => m.parameter === param)?.value ?? null
+      return {
+        city: result.city ?? result.location ?? searchQuery,
+        country: result.country ?? '',
+        pm25: get('pm25'),
+        pm10: get('pm10'),
+        no2: get('no2'),
+        o3: get('o3'),
+        timestamp: result.measurements![0]?.datetime?.utc ?? new Date().toISOString(),
+      }
+    } catch {
+      return null
+    }
+  }
+
+  // ── Step 3: Country fetch — aggregate AVG across all cities in the country ──
   // One-directional LIKE: the query must appear inside the country name.
 
   private async fetchCountryData(searchQuery: string) {
@@ -390,7 +420,41 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
       }
     }
 
-    // Fall back to country aggregate — run both tables in parallel
+    // Step 2: OpenAQ live API — wider global city coverage
+    const openaqRow = await this.fetchOpenAQCityData(searchQuery)
+    if (openaqRow) {
+      const pm25 = openaqRow.pm25 ?? 0
+      const pm10 = openaqRow.pm10 ?? 0
+      const no2 = openaqRow.no2 ?? 0
+      const o3 = openaqRow.o3 ?? 0
+      const aqi = pm25ToAqi(pm25)
+      const category = aqiToCategory(aqi)
+      // OpenAQ returns ISO 2-letter codes (e.g. "PH") — flag map uses full names,
+      // so most OpenAQ results will fall back to the globe emoji.
+      const flagEmoji = COUNTRY_FLAG[openaqRow.country.toLowerCase()] ?? '🌍'
+
+      const aiContent = await this.generateContent(
+        openaqRow.country ? `${openaqRow.city}, ${openaqRow.country}` : openaqRow.city,
+        'city',
+        aqi,
+        category,
+        pm25,
+        pm10,
+        no2
+      )
+
+      return {
+        type: 'city',
+        id: openaqRow.city.toLowerCase().replace(/\s+/g, '-'),
+        name: openaqRow.city,
+        country: openaqRow.country,
+        flagEmoji,
+        pollution: { aqi, category, pm25, pm10, o3, no2, updatedAt: openaqRow.timestamp },
+        ...aiContent,
+      }
+    }
+
+    // Step 3: Fall back to country aggregate — run both tables in parallel
     const [countryRow, adpcRow] = await Promise.all([
       this.fetchCountryData(searchQuery),
       this.fetchAdpcCountryData(searchQuery),
