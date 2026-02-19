@@ -37,3 +37,36 @@ gcloud firestore indexes composite list --project=aircare-sea
 ```
 FIRESTORE_PROJECT=aircare-sea python scripts/cleanup_firestore.py
 ```
+
+# Deploy ADPC PM2.5 daily ingestion job to Cloud Run + Cloud Scheduler
+
+https://aq-tracker-servir.adpc.net/dashboard
+
+Files created:
+
+infra/adpc-ingest/Dockerfile — minimal Python image with only what the script needs
+infra/adpc-ingest/deploy.sh — one-shot setup script
+What the deploy script does (6 steps):
+
+Step What
+1 Stores ADPC_TOKEN in Secret Manager (not a plain env var)
+2 Creates Artifact Registry repo for the Docker image
+3 Builds & pushes image via Cloud Build
+4 Creates a service account with BigQuery write + Secret access
+5 Creates Cloud Run Job (adpc-pm25-daily)
+6 Creates Cloud Scheduler trigger at 08:00 UTC daily
+To deploy:
+
+# First, store your token once:
+
+gcloud secrets create ADPC_TOKEN --project=aircare-sea
+echo -n 'your_token_here' | gcloud secrets versions add ADPC_TOKEN --data-file=- --project=aircare-sea
+
+# Then run the deploy script:
+
+cd infra/adpc-ingest
+bash deploy.sh
+To trigger manually (test run):
+
+gcloud run jobs execute adpc-pm25-daily --region=asia-southeast1 --project=aircare-sea
+The schedule 0 8 \* \* \* (08:00 UTC) gives ADPC ~32 hours after midnight to publish the previous day's model output before we fetch it.
