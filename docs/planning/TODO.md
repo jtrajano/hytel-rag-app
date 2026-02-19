@@ -113,7 +113,7 @@ then run frontend = pnpm dev
 
 #### **Member 2 (RAG & App)**
 
-- [ ] **RAG Service:** Implement `RAGService` class handling Embedding → Retrieval → Prompting.
+- [x] **RAG Service:** Implement `RAGService` class handling Embedding → Retrieval → Prompting.
   - Retrieval uses **Firestore `find_nearest()`** (not TDD 4.2's `aiplatform_v1.MatchServiceClient`)
   - `RAGService(project_id)` — no `index_endpoint` param needed
   - `_retrieve_chunks()` queries `rag_chunks` collection and returns docs with `content` already included (no separate lookup step)

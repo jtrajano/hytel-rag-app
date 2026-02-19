@@ -70,3 +70,13 @@ To trigger manually (test run):
 
 gcloud run jobs execute adpc-pm25-daily --region=asia-southeast1 --project=aircare-sea
 The schedule 0 8 \* \* \* (08:00 UTC) gives ADPC ~32 hours after midnight to publish the previous day's model output before we fetch it.
+
+### run back end api
+
+```
+cd apps/functions
+pnpm run serve
+```
+
+pnpm --filter @repo/functions
+pnpm --filter web dev
