@@ -53,6 +53,7 @@ export interface CitySearchResult {
 
 const DATASET = 'aircare_sea'
 const GLOBAL_AQI_TABLE = 'global_aqi_reference'
+const ADPC_REGIONS_TABLE = 'adpc_pm25_regions'
 const LOCATION = 'us-central1'
 const GEMINI_MODEL = 'gemini-2.0-flash-001'
 
@@ -259,6 +260,29 @@ export class SearchService {
     }
   }
 
+  // ── Step 3: ADPC satellite PM2.5 country lookup ────────────────────────────
+
+  private async fetchAdpcCountryData(searchQuery: string) {
+    const query = `
+      SELECT
+        country,
+        ROUND(AVG(pm25_avg), 2)        AS pm25,
+        CAST(MAX(init_date) AS STRING) AS timestamp
+      FROM \`${this.projectId}.${DATASET}.${ADPC_REGIONS_TABLE}\`
+      WHERE LOWER(TRIM(country)) LIKE CONCAT('%', LOWER(TRIM(@searchQuery)), '%')
+      GROUP BY country
+      ORDER BY MAX(init_date) DESC
+      LIMIT 1
+    `
+    try {
+      const [rows] = await this.bq.query({ query, params: { searchQuery } })
+      if (!rows.length) return null
+      return rows[0] as { country: string; pm25: number | null; timestamp: string }
+    } catch {
+      return null
+    }
+  }
+
   // ── Gemini content generation ──────────────────────────────────────────────
 
   private async generateContent(
@@ -366,19 +390,26 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
       }
     }
 
-    // Fall back to country aggregate
-    const countryRow = await this.fetchCountryData(searchQuery)
-    if (countryRow) {
-      const pm25 = countryRow.pm25 ?? 0
-      const pm10 = countryRow.pm10 ?? 0
-      const no2 = countryRow.no2 ?? 0
-      const o3 = countryRow.ozone ?? 0
+    // Fall back to country aggregate — run both tables in parallel
+    const [countryRow, adpcRow] = await Promise.all([
+      this.fetchCountryData(searchQuery),
+      this.fetchAdpcCountryData(searchQuery),
+    ])
+
+    if (countryRow || adpcRow) {
+      const matchedCountry = countryRow?.country ?? adpcRow!.country
+      // Prefer ADPC satellite pm25 (more reliable regional data); fall back to global_aqi aggregate
+      const pm25 = adpcRow?.pm25 ?? countryRow?.pm25 ?? 0
+      const pm10 = countryRow?.pm10 ?? 0
+      const no2 = countryRow?.no2 ?? 0
+      const o3 = countryRow?.ozone ?? 0
+      const updatedAt = countryRow?.timestamp ?? adpcRow!.timestamp
       const aqi = pm25ToAqi(pm25)
       const category = aqiToCategory(aqi)
-      const flagEmoji = COUNTRY_FLAG[countryRow.country.toLowerCase()] ?? '🌍'
+      const flagEmoji = COUNTRY_FLAG[matchedCountry.toLowerCase()] ?? '🌍'
 
       const aiContent = await this.generateContent(
-        countryRow.country,
+        matchedCountry,
         'country',
         aqi,
         category,
@@ -389,11 +420,11 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
 
       return {
         type: 'country',
-        id: countryRow.country.toLowerCase().replace(/\s+/g, '-'),
-        name: countryRow.country,
-        country: countryRow.country,
+        id: matchedCountry.toLowerCase().replace(/\s+/g, '-'),
+        name: matchedCountry,
+        country: matchedCountry,
         flagEmoji,
-        pollution: { aqi, category, pm25, pm10, o3, no2, updatedAt: countryRow.timestamp },
+        pollution: { aqi, category, pm25, pm10, o3, no2, updatedAt },
         ...aiContent,
       }
     }
