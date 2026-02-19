@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Loader2, MessageSquare, ChevronLeft } from 'lucide-react'
+import { Send, Bot, User, Loader2, MessageSquare, ChevronLeft, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,23 +8,22 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { trpc } from '@/lib/trpc'
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-interface Source {
+interface RagSource {
   label: string
-  url?: string | null
-  chunk_index?: number | null
+  url: string
 }
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  sources?: RagSource[]
   timestamp: Date
-  sources?: Source[]
 }
 
-// ── Suggested questions ───────────────────────────────────────────────────────
+// ── Suggested questions ────────────────────────────────────────────────────────
 
 const SUGGESTED_QUESTIONS = [
   'What is PM2.5 and why is it dangerous?',
@@ -34,33 +33,7 @@ const SUGGESTED_QUESTIONS = [
   'How does air pollution affect children with asthma?',
 ]
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function SourceChips({ sources }: { sources: Source[] }) {
-  if (!sources.length) return null
-  return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
-      {sources.map(s => (
-        <span key={s.label}>
-          {s.url ? (
-            <a
-              href={s.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
-            >
-              {s.label}
-            </a>
-          ) : (
-            <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              {s.label}
-            </span>
-          )}
-        </span>
-      ))}
-    </div>
-  )
-}
+// ── Sub-components ─────────────────────────────────────────────────────────────
 
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
@@ -78,7 +51,8 @@ function MessageBubble({ message }: { message: Message }) {
           <Bot className="w-4 h-4 text-muted-foreground" />
         )}
       </div>
-      <div className={cn('max-w-[75%]', isUser ? 'items-end' : 'items-start')}>
+
+      <div className={cn('max-w-[75%] flex flex-col gap-2', isUser && 'items-end')}>
         <div
           className={cn(
             'rounded-2xl px-4 py-3 text-sm leading-relaxed',
@@ -89,7 +63,23 @@ function MessageBubble({ message }: { message: Message }) {
         >
           {message.content}
         </div>
-        {!isUser && message.sources && <SourceChips sources={message.sources} />}
+
+        {/* Source citations */}
+        {!isUser && message.sources && message.sources.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 px-1">
+            {message.sources.map((src, i) => (
+              <a
+                key={src.url}
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />[{i + 1}] {src.label}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -112,7 +102,7 @@ function TypingIndicator() {
   )
 }
 
-// ── Main Section ──────────────────────────────────────────────────────────────
+// ── Main Section ───────────────────────────────────────────────────────────────
 
 const ChatSection = () => {
   const { user } = useAuth()
@@ -120,16 +110,35 @@ const ChatSection = () => {
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const askMutation = trpc.chat.ask.useMutation()
-  const isTyping = askMutation.isPending
+  const askMutation = trpc.chat.ask.useMutation({
+    onSuccess: data => {
+      const aiMsg: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.answer,
+        sources: data.sources,
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, aiMsg])
+    },
+    onError: err => {
+      const errMsg: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `Sorry, something went wrong: ${err.message}. Please try again.`,
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, errMsg])
+    },
+  })
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
+  }, [messages, askMutation.isPending])
 
   const sendMessage = (text: string) => {
     const trimmed = text.trim()
-    if (!trimmed || isTyping) return
+    if (!trimmed || askMutation.isPending) return
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
@@ -137,39 +146,21 @@ const ChatSection = () => {
       content: trimmed,
       timestamp: new Date(),
     }
-
     setMessages(prev => [...prev, userMsg])
     setInputValue('')
 
-    askMutation.mutate(
-      { question: trimmed },
-      {
-        onSuccess(data) {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: data.answer,
-              sources: data.sources,
-              timestamp: new Date(),
-            },
-          ])
-        },
-        onError() {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content:
-                "Sorry, I couldn't get a response right now. Please check your connection and try again.",
-              timestamp: new Date(),
-            },
-          ])
-        },
-      }
+    // Extract city and/or country from user message (simple heuristic)
+    const cityMatch = trimmed.match(
+      /\b(bangkok|manila|jakarta|singapore|kuala lumpur|ho chi minh|hanoi|phnom penh|yangon|vientiane)\b/i
     )
+    const countryMatch = trimmed.match(
+      /\b(thailand|philippines|indonesia|malaysia|vietnam|cambodia|myanmar|laos|brunei|singapore|timor.?leste)\b/i
+    )
+    askMutation.mutate({
+      question: trimmed,
+      city: cityMatch ? cityMatch[0] : undefined,
+      country: countryMatch ? countryMatch[0] : undefined,
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -177,7 +168,7 @@ const ChatSection = () => {
   }
 
   const firstName = user?.displayName?.split(' ')[0] ?? null
-  const showEmpty = messages.length === 0 && !isTyping
+  const showEmpty = messages.length === 0 && !askMutation.isPending
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -241,7 +232,7 @@ const ChatSection = () => {
             {messages.map(msg => (
               <MessageBubble key={msg.id} message={msg} />
             ))}
-            {isTyping && <TypingIndicator />}
+            {askMutation.isPending && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -256,16 +247,20 @@ const ChatSection = () => {
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isTyping}
+            disabled={askMutation.isPending}
             className="flex-1"
           />
           <Button
             onClick={() => sendMessage(inputValue)}
-            disabled={isTyping || inputValue.trim().length === 0}
+            disabled={askMutation.isPending || inputValue.trim().length === 0}
             size="icon"
             className="flex-shrink-0"
           >
-            {isTyping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {askMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </Button>
         </div>
         <div className="max-w-2xl mx-auto mt-2 flex items-center gap-1.5">

@@ -95,17 +95,28 @@ def print_results(question: str, docs: list[dict]) -> None:
     if not docs:
         print("  No results returned.")
         return
-    for i, doc in enumerate(docs, 1):
-        distance = doc.get("vector_distance", None)
-        similarity = f"{1 - distance:.2f}" if distance is not None else "?"
-        dist_str = f"{distance:.4f}" if distance is not None else "?"
-        low_relevance = distance is not None and distance > DISTANCE_THRESHOLD
-        flag = "  ⚠ low relevance" if low_relevance else ""
+
+    # Filter to only relevant results
+    relevant = [
+        doc for doc in docs
+        if doc.get("vector_distance") is not None
+        and doc["vector_distance"] <= DISTANCE_THRESHOLD
+    ]
+
+    if not relevant:
+        print(f"  No relevant results found (all {len(docs)} candidates exceeded "
+              f"distance threshold {DISTANCE_THRESHOLD}).")
+        print()
+        return
+
+    for i, doc in enumerate(relevant, 1):
+        distance = doc.get("vector_distance")
+        similarity = f"{1 - distance:.2f}"
+        dist_str = f"{distance:.4f}"
 
         content = doc.get("content", "")
-        truncated = len(content) > 180
-        content_preview = content[:180].replace("\n", " ") + ("..." if truncated else "")
-        print(f"  [{i}] {doc.get('source_label', 'Unknown')}{flag}")
+        content_preview = content[:180].replace("\n", " ") + ("..." if len(content) > 180 else "")
+        print(f"  [{i}] {doc.get('source_label', 'Unknown')}")
         print(f"       similarity={similarity}  distance={dist_str}  "
               f"chunk {doc.get('chunk_index', '?')}/{doc.get('total_chunks', '?')} "
               f"— {doc.get('doc_id', '')}")
