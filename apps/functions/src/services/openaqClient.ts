@@ -161,7 +161,7 @@ export class OpenAQClient {
       return []
     }
 
-    return scored.map(entry => entry.location)
+    return scored.filter(entry => entry.score > 0).map(entry => entry.location)
   }
 
   private scoreLocationMatch(location: OpenAQLocation, normalizedCity: string): number {

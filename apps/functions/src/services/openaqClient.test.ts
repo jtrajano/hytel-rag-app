@@ -47,7 +47,7 @@ describe('OpenAQClient', () => {
       .mockResolvedValueOnce(
         makeJsonResponse({
           results: [
-            { id: 3, name: 'NMA - Nima', city: 'Accra' },
+            { id: 3, name: 'Manila Old', city: 'Manila' },
             { id: 777, name: 'Manila Station', city: 'Manila' },
           ],
         })
