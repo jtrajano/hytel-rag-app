@@ -1,14 +1,25 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, MessageSquare, LogOut } from 'lucide-react'
+import { doc, getDoc } from 'firebase/firestore'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import MorningSummarySection from '@/sections/dashboard/MorningSummarySection'
 import AQIOverviewSection from '@/sections/dashboard/AQIOverviewSection'
 import ForecastSection from '@/sections/dashboard/ForecastSection'
 import { useAuth } from '@/hooks/useAuth'
+import { db } from '@/lib/firebase'
 
 const DashboardPage = () => {
   const { user, signOut } = useAuth()
+  const [homeCity, setHomeCity] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user) return
+    getDoc(doc(db, 'users', user.uid)).then(snap => {
+      setHomeCity((snap.data()?.homeCity as string | null) ?? null)
+    })
+  }, [user])
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -33,7 +44,9 @@ const DashboardPage = () => {
             <h1 className="text-lg font-semibold text-foreground">
               {greeting}, {firstName}
             </h1>
-            <p className="text-sm text-muted-foreground">Manila, Philippines · {today}</p>
+            <p className="text-sm text-muted-foreground">
+              {homeCity ?? 'Set your location'} · {today}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
