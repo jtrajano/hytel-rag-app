@@ -1,15 +1,82 @@
-import { Sunrise } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Sunrise, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { trpc } from '@/lib/trpc'
 
-const MorningSummarySection = () => {
+// ── Cache helpers (localStorage, 1-hour TTL, keyed by city) ──────────────────
+
+const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
+
+function getCached(city: string): string | null {
+  try {
+    const raw = localStorage.getItem(`morning_briefing:${city}`)
+    if (!raw) return null
+    const { answer, cachedAt } = JSON.parse(raw) as { answer: string; cachedAt: number }
+    if (Date.now() - cachedAt > CACHE_TTL_MS) return null
+    return answer
+  } catch {
+    return null
+  }
+}
+
+function setCached(city: string, answer: string) {
+  try {
+    localStorage.setItem(
+      `morning_briefing:${city}`,
+      JSON.stringify({ answer, cachedAt: Date.now() })
+    )
+  } catch {
+    /* ignore storage quota errors */
+  }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+interface MorningSummarySectionProps {
+  homeCity?: string | null
+}
+
+const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   })
+
+  const [cachedAnswer, setCachedAnswer] = useState<string | null>(null)
+
+  const {
+    mutate: fetchBriefing,
+    isPending,
+    data,
+    isError,
+  } = trpc.chat.ask.useMutation({
+    onSuccess: result => {
+      if (homeCity) setCached(homeCity, result.answer)
+    },
+  })
+
+  useEffect(() => {
+    if (!homeCity) return
+
+    // Serve from cache if still fresh
+    const cached = getCached(homeCity)
+    if (cached) {
+      setCachedAnswer(cached)
+      return
+    }
+
+    // Cache miss — fetch from RAGService
+    fetchBriefing({
+      question: `Give me a morning air quality briefing for ${homeCity}. Include the current air quality rating and PM2.5 levels, health recommendations especially for sensitive groups, and the short-term forecast for today.`,
+      city: homeCity,
+    })
+  }, [homeCity, fetchBriefing])
+
+  const answer = cachedAnswer ?? data?.answer
 
   return (
     <Card className="border-border shadow-sm">
@@ -23,25 +90,40 @@ const MorningSummarySection = () => {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Morning Health Briefing
             </p>
-            <p className="text-xs text-muted-foreground">Manila, Philippines · {today}</p>
+            <p className="text-xs text-muted-foreground">
+              {homeCity ?? 'Set your location'} · {today}
+            </p>
           </div>
         </div>
 
         <Separator className="mb-4" />
 
-        {/* AI Summary Placeholder */}
-        <p className="text-sm text-foreground leading-relaxed mb-3">
-          Air quality in Manila this morning is rated{' '}
-          <span className="font-semibold text-orange-600">Unhealthy</span> with an AQI of 158,
-          primarily driven by elevated PM2.5 concentrations from traffic and industrial emissions
-          overnight. Sensitive groups including asthma patients and children should limit prolonged
-          outdoor exposure, especially during the morning commute hours.
-        </p>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          A gradual improvement is expected by midday as sea breeze patterns develop along Manila
-          Bay. Consider scheduling outdoor activities for the late afternoon window between 3–5 PM
-          when conditions are forecast to reach Moderate levels.
-        </p>
+        {/* Loading */}
+        {isPending && !answer && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+            Generating your morning briefing…
+          </div>
+        )}
+
+        {/* Answer (live or from cache) */}
+        {answer && (
+          <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{answer}</p>
+        )}
+
+        {/* Error */}
+        {!isPending && isError && !answer && (
+          <p className="text-sm text-muted-foreground">
+            Unable to load briefing. Please refresh the page.
+          </p>
+        )}
+
+        {/* No city set */}
+        {!isPending && !answer && !isError && (
+          <p className="text-sm text-muted-foreground">
+            Set your home city to get a personalised morning briefing.
+          </p>
+        )}
 
         <Separator className="my-4" />
 
