@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
+    "serve": "tsx watch src/server.ts",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -18,12 +19,17 @@
   "dependencies": {
     "@repo/shared": "workspace:*",
     "@trpc/server": "^11.0.0-rc.660",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@repo/config": "workspace:*",
     "@repo/eslint-config": "workspace:*",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "eslint": "^8.57.0",
+    "tsx": "^4.19.2",
     "typescript": "5.5.4",
     "vitest": "^2.1.8"
   }

@@ -94,6 +94,11 @@ python -m venv .venv // one time setup if .venv does not exist
 .venv/Scripts/activate
 pip install -r scripts/requirements.txt
 VERTEX_PROJECT=aircare-sea python scripts/test_vector_query.py "Can I jog outside?"
+
+To run the server > apps > function then = pnpm serve
+At the root run = VERTEX_PROJECT=aircare-sea uvicorn backend.app:app --reload --port 8000
+then run frontend = pnpm dev
+
 ```
 
 ### 📅 Phase 3: AI Models (Days 5–6)
