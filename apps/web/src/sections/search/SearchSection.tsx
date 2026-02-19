@@ -1,19 +1,24 @@
 import { useState } from 'react'
-import { Search, Loader2, ChevronLeft } from 'lucide-react'
+import { Search, Loader2, ChevronLeft, LocateFixed } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useSearchPlace } from '@/hooks/useSearchPlace'
+import { useGeolocation } from '@/hooks/useGeolocation'
+import { reverseGeocode } from '@/lib/reverseGeocode'
 import { SearchResults } from './SearchResults'
 import { POPULAR_SEARCHES } from './searchConstants'
 
 const SearchSection = () => {
   const [inputQuery, setInputQuery] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
+  const [locating, setLocating] = useState(false)
+  const [locationError, setLocationError] = useState<string | null>(null)
 
   const { data, isLoading, isError } = useSearchPlace(submittedQuery)
+  const { getLocation } = useGeolocation()
 
   const handleSearch = () => setSubmittedQuery(inputQuery)
 
@@ -24,6 +29,31 @@ const SearchSection = () => {
   const handlePopularSearch = (city: string) => {
     setInputQuery(city)
     setSubmittedQuery(city)
+  }
+
+  const handleUseLocation = async () => {
+    setLocating(true)
+    setLocationError(null)
+
+    const coords = await getLocation()
+    if (!coords) {
+      setLocationError(
+        'Could not access your location. Please allow location access and try again.'
+      )
+      setLocating(false)
+      return
+    }
+
+    const city = await reverseGeocode(coords.latitude, coords.longitude)
+    if (!city) {
+      setLocationError('Could not determine your city. Try searching manually.')
+      setLocating(false)
+      return
+    }
+
+    setInputQuery(city)
+    setSubmittedQuery(city)
+    setLocating(false)
   }
 
   return (
@@ -53,21 +83,39 @@ const SearchSection = () => {
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Search bar */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="text"
-              placeholder="Search city or country..."
-              className="pl-9"
-              value={inputQuery}
-              onChange={e => setInputQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Search city or country..."
+                className="pl-9"
+                value={inputQuery}
+                onChange={e => setInputQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleUseLocation}
+              disabled={locating}
+              title="Use my location"
+              aria-label="Detect my location"
+            >
+              {locating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <LocateFixed className="w-4 h-4" />
+              )}
+            </Button>
+            <Button onClick={handleSearch} className="px-5">
+              Search
+            </Button>
           </div>
-          <Button onClick={handleSearch} className="px-5">
-            Search
-          </Button>
+
+          {locationError && <p className="text-xs text-destructive pl-1">{locationError}</p>}
         </div>
 
         {/* Popular searches */}

@@ -1,14 +1,41 @@
-import { ShieldAlert, Leaf } from 'lucide-react'
+import { ShieldAlert, Leaf, Globe } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { type PlaceSearchResult } from '@/lib/schema/pollutionSchema'
 import { getAqiTextColor, getAqiBadgeClass, getAqiScaleIndex } from './searchUtils'
 import { AQI_SCALE_SEGMENTS } from './searchConstants'
 
-export function SearchResults({ result }: { result: PlaceSearchResult }) {
+interface GuidelineItem {
+  id: string
+  text: string
+}
+
+interface SearchPollution {
+  aqi: number
+  category: string
+  pm25: number
+  pm10: number
+  o3: number
+  no2: number
+  updatedAt: string
+}
+
+interface SearchResult {
+  type: 'city' | 'country'
+  id: string
+  name: string
+  country: string
+  flagEmoji: string
+  pollution: SearchPollution
+  visitorGuidelines: GuidelineItem[]
+  preventionTips: GuidelineItem[]
+  improvementActions: GuidelineItem[]
+}
+
+export function SearchResults({ result }: { result: SearchResult }) {
   const { pollution } = result
+  const isCountry = result.type === 'country'
   const aqiTextColor = getAqiTextColor(pollution.aqi)
   const aqiBadgeClass = getAqiBadgeClass(pollution.aqi)
   const activeSegment = getAqiScaleIndex(pollution.aqi)
@@ -26,7 +53,14 @@ export function SearchResults({ result }: { result: PlaceSearchResult }) {
               </span>
               <div>
                 <h2 className="text-lg font-bold text-foreground">{result.name}</h2>
-                <p className="text-sm text-muted-foreground">{result.country}</p>
+                {isCountry ? (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Globe className="w-3 h-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">National Overview</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{result.country}</p>
+                )}
               </div>
             </div>
             <Badge className={cn('text-sm px-3 py-1', aqiBadgeClass)}>{pollution.category}</Badge>
@@ -37,9 +71,16 @@ export function SearchResults({ result }: { result: PlaceSearchResult }) {
       {/* Pollution overview card */}
       <Card className="border-border shadow-sm overflow-hidden">
         <div className="bg-muted/30 border-b border-border px-5 pt-5 pb-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-            Pollution Overview
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Pollution Overview
+            </h3>
+            {isCountry && (
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                National average
+              </span>
+            )}
+          </div>
           <div className="flex items-end gap-3">
             <span className={cn('text-7xl font-black leading-none', aqiTextColor)}>
               {pollution.aqi}
@@ -48,13 +89,15 @@ export function SearchResults({ result }: { result: PlaceSearchResult }) {
               <Badge className={cn('text-sm px-2.5 py-0.5 w-fit', aqiBadgeClass)}>
                 {pollution.category}
               </Badge>
-              <span className="text-xs text-muted-foreground">US AQI</span>
+              <span className="text-xs text-muted-foreground">
+                {isCountry ? 'Avg. US AQI' : 'US AQI'}
+              </span>
             </div>
           </div>
         </div>
 
         <CardContent className="p-5 space-y-4">
-          {/* AQI scale bar — mirrors AQIOverviewSection */}
+          {/* AQI scale bar */}
           <div>
             <div className="flex h-2 rounded-full overflow-hidden">
               {AQI_SCALE_SEGMENTS.map((seg, i) => (
@@ -93,14 +136,16 @@ export function SearchResults({ result }: { result: PlaceSearchResult }) {
                 <p className="text-xl font-bold text-foreground leading-none">
                   {p.value.toFixed(1)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">{p.unit}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isCountry ? `avg. ${p.unit}` : p.unit}
+                </p>
               </div>
             ))}
           </div>
 
           {/* Timestamp */}
           <p className="text-xs text-muted-foreground">
-            Last updated:{' '}
+            {isCountry ? 'Data as of' : 'Last updated'}:{' '}
             {new Date(pollution.updatedAt).toLocaleString('en-US', {
               weekday: 'short',
               month: 'short',
@@ -108,6 +153,7 @@ export function SearchResults({ result }: { result: PlaceSearchResult }) {
               hour: '2-digit',
               minute: '2-digit',
             })}
+            {isCountry && <span className="ml-1">(most recent city reading)</span>}
           </p>
         </CardContent>
       </Card>
@@ -121,11 +167,16 @@ export function SearchResults({ result }: { result: PlaceSearchResult }) {
                 <ShieldAlert className="w-5 h-5 text-orange-600" />
               </div>
               <CardTitle className="text-base font-semibold text-foreground">
-                Visitor Guidelines
+                {isCountry ? `Visitor Guidelines — ${result.name}` : 'Visitor Guidelines'}
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="px-5 pb-5">
+            {isCountry && (
+              <p className="text-xs text-muted-foreground mb-3">
+                Based on the national average — conditions may vary by city.
+              </p>
+            )}
             <ul className="space-y-3">
               {result.visitorGuidelines.map(g => (
                 <li key={g.id} className="flex items-start gap-2.5">

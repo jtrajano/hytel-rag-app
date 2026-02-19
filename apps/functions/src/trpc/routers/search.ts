@@ -1,0 +1,51 @@
+import { z } from 'zod'
+import { router, publicProcedure } from '../trpc'
+import { SearchService } from '../../services/searchService'
+
+const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
+
+const AqiCategorySchema = z.enum([
+  'Good',
+  'Moderate',
+  'Unhealthy for Sensitive Groups',
+  'Unhealthy',
+  'Very Unhealthy',
+  'Hazardous',
+])
+
+const GuidelineItemSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+})
+
+const CitySearchResultSchema = z
+  .object({
+    type: z.enum(['city', 'country']),
+    id: z.string(),
+    name: z.string(),
+    country: z.string(),
+    flagEmoji: z.string(),
+    pollution: z.object({
+      aqi: z.number(),
+      category: AqiCategorySchema,
+      pm25: z.number(),
+      pm10: z.number(),
+      o3: z.number(),
+      no2: z.number(),
+      updatedAt: z.string(),
+    }),
+    visitorGuidelines: z.array(GuidelineItemSchema),
+    preventionTips: z.array(GuidelineItemSchema),
+    improvementActions: z.array(GuidelineItemSchema),
+  })
+  .nullable()
+
+export const searchRouter = router({
+  byCity: publicProcedure
+    .input(z.object({ query: z.string().min(1).max(100) }))
+    .output(CitySearchResultSchema)
+    .query(async ({ input }) => {
+      const svc = new SearchService(PROJECT_ID)
+      return await svc.lookupCity(input.query)
+    }),
+})
