@@ -100,7 +100,7 @@ VERTEX_PROJECT=aircare-sea python scripts/test_vector_query.py "Can I jog outsid
 
 **Goal:** Forecast model training and RAG pipeline operational.
 
-#### **Member 1 (Data & Forecast)**
+#### Skipped for now - we already have forecasting data: **Member 1 (Data & Forecast)**
 
 - [ ] **Train Model:** Submit Vertex AI AutoML Forecasting job (72h horizon).
 - [ ] **Endpoint Deployment:** Deploy the trained model to a Vertex AI Endpoint.
