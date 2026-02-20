@@ -44,15 +44,24 @@ const SearchSection = () => {
       return
     }
 
-    const city = await reverseGeocode(coords.latitude, coords.longitude)
-    if (!city) {
-      setLocationError('Could not determine your city. Try searching manually.')
+    const location = await reverseGeocode(coords.latitude, coords.longitude)
+    if (!location || (!location.city && !location.country)) {
+      setLocationError('Could not determine your location. Try searching manually.')
       setLocating(false)
       return
     }
 
-    setInputQuery(city)
-    setSubmittedQuery(city)
+    // Prioritize country as requested by user
+    const searchQuery = location.country || location.city || ''
+
+    if (!searchQuery) {
+      setLocationError('Could not determine a valid search query from your location.')
+      setLocating(false)
+      return
+    }
+
+    setInputQuery(searchQuery)
+    setSubmittedQuery(searchQuery)
     setLocating(false)
   }
 
@@ -74,8 +83,8 @@ const SearchSection = () => {
           </Button>
           <div>
             <h1 className="text-lg font-semibold text-foreground">Search Air Quality</h1>
-            <p className="text-sm text-muted-foreground">
-              Look up pollution levels for any city or country
+            <p className="text-sm text-muted-foreground capitalize">
+              Look up pollution levels for any city or country in south east asia
             </p>
           </div>
         </div>

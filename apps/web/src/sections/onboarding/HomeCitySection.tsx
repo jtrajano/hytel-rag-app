@@ -8,30 +8,47 @@ import { Badge } from '@/components/ui/badge'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
+import { useGeolocation } from '@/hooks/useGeolocation'
+import { reverseGeocode } from '@/lib/reverseGeocode'
+import { trpc } from '@/lib/trpc'
 
-const QUICK_CITIES = [
-  'Manila',
-  'Jakarta',
-  'Bangkok',
-  'Ho Chi Minh City',
-  'Kuala Lumpur',
-  'Singapore',
-]
+import { POPULAR_SEARCHES } from '../search/searchConstants'
 
 const HomeCitySection = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [cityInput, setCityInput] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
+
+  const utils = trpc.useUtils()
+
+  const { getLocation, loading: locating, error: locationError } = useGeolocation()
 
   const handleCompleteSetup = async () => {
     const city = cityInput.trim()
     if (!city || !user) return
+
+    setValidationError(null)
     setIsSaving(true)
+
     try {
+      // Validate that the location exists in our data sources
+      const result = await utils.search.byCity.fetch({ query: city })
+
+      if (!result) {
+        setValidationError(
+          'Location not found. Please check spelling or try a different city/country.'
+        )
+        setIsSaving(false)
+        return
+      }
+
       await setDoc(doc(db, 'users', user.uid), { homeCity: city }, { merge: true })
       navigate('/dashboard')
-    } finally {
+    } catch (error) {
+      console.error('Error validating location:', error)
+      setValidationError('Unable to validate location. Please try again.')
       setIsSaving(false)
     }
   }
@@ -54,10 +71,27 @@ const HomeCitySection = () => {
       </p>
 
       {/* Use My Location button */}
-      <Button size="lg" className="w-full rounded-lg mb-6 gap-2" variant="outline">
+      <Button
+        size="lg"
+        className="w-full rounded-lg mb-2 gap-2"
+        variant="outline"
+        onClick={async () => {
+          const coords = await getLocation()
+          if (coords) {
+            const location = await reverseGeocode(coords.latitude, coords.longitude)
+            if (location && (location.country || location.city)) {
+              setCityInput(location.country || location.city || '')
+            }
+          }
+        }}
+        disabled={locating}
+      >
         <MapPin className="w-4 h-4" />
-        Use My Location
+        {locating ? 'Locating...' : 'Use My Location'}
       </Button>
+      {locationError && (
+        <p className="text-xs text-destructive mb-4 text-center">{locationError}</p>
+      )}
 
       {/* Divider */}
       <div className="flex items-center gap-3 mb-6">
@@ -71,7 +105,7 @@ const HomeCitySection = () => {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <Input
           type="text"
-          placeholder="Type your city..."
+          placeholder="Type your country..."
           className="pl-9"
           value={cityInput}
           onChange={e => setCityInput(e.target.value)}
@@ -81,24 +115,28 @@ const HomeCitySection = () => {
         />
       </div>
 
+      {validationError && (
+        <p className="text-xs text-destructive mb-6 -mt-4 pl-1">{validationError}</p>
+      )}
+
       {/* Quick select cities */}
       <div className="mb-10">
         <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-          Popular cities
+          Southeast Asia Countries
         </p>
         <div className="flex flex-wrap gap-2">
-          {QUICK_CITIES.map(city => (
+          {POPULAR_SEARCHES.map(country => (
             <Badge
-              key={city}
+              key={country}
               variant="outline"
-              onClick={() => setCityInput(city)}
+              onClick={() => setCityInput(country)}
               className={
-                cityInput === city
+                cityInput === country
                   ? 'cursor-pointer px-3 py-1.5 text-sm font-normal bg-primary text-primary-foreground border-primary'
                   : 'cursor-pointer px-3 py-1.5 text-sm font-normal hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors'
               }
             >
-              {city}
+              {country}
             </Badge>
           ))}
         </div>

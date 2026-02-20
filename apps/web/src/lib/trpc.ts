@@ -1,5 +1,5 @@
 import { createTRPCReact } from '@trpc/react-query'
-import { httpBatchLink, httpBatchStreamLink, splitLink } from '@trpc/client'
+import { httpBatchLink } from '@trpc/client'
 import type { AppRouter } from '@repo/functions/router'
 import { auth } from './firebase'
 
@@ -17,16 +17,9 @@ async function getAuthHeaders() {
 
 export const trpcClient = trpc.createClient({
   links: [
-    splitLink({
-      condition: op => op.type === 'query',
-      true: httpBatchStreamLink({
-        url,
-        headers: getAuthHeaders,
-      }),
-      false: httpBatchLink({
-        url,
-        headers: getAuthHeaders,
-      }),
+    httpBatchLink({
+      url,
+      headers: getAuthHeaders,
     }),
   ],
 })

@@ -248,6 +248,58 @@ export class RAGService {
     }
   }
 
+  // ── Step 4.5: Fetch aggregated country data from global_aqi_reference ─────────
+
+  async getCountryAggregatedData(country: string): Promise<GlobalAqiReading | null> {
+    const query = `
+      SELECT
+        country,
+        CAST(MAX(timestamp) AS STRING) AS timestamp,
+        AVG(pm25) as pm25,
+        AVG(pm10) as pm10,
+        AVG(no2) as no2,
+        AVG(so2) as so2,
+        AVG(co) as co,
+        AVG(ozone) as ozone,
+        AVG(aerosol_optical_depth) as aerosol_optical_depth
+      FROM \`${this.projectId}.${DATASET}.${GLOBAL_AQI_TABLE}\`
+      WHERE LOWER(TRIM(country)) LIKE CONCAT('%', LOWER(TRIM(@country)), '%')
+      GROUP BY country
+      ORDER BY MAX(timestamp) DESC
+      LIMIT 1
+    `
+    try {
+      const [rows] = await this.bq.query({ query, params: { country } })
+      if (!rows.length) return null
+      const r = rows[0] as {
+        country: string
+        timestamp: string
+        pm25: number
+        pm10: number
+        no2: number
+        so2: number
+        co: number
+        ozone: number
+        aerosol_optical_depth: number
+      }
+      return {
+        city: `${r.country} (National Avg)`, // Placeholder for prompt context
+        country: r.country,
+        timestamp: r.timestamp,
+        pm25: r.pm25 ?? null,
+        pm10: r.pm10 ?? null,
+        no2: r.no2 ?? null,
+        so2: r.so2 ?? null,
+        co: r.co ?? null,
+        ozone: r.ozone ?? null,
+        aerosolOpticalDepth: r.aerosol_optical_depth ?? null,
+        aqiClass: null, // Aggregates don't have a single class
+      }
+    } catch {
+      return null
+    }
+  }
+
   // ── Step 5: Fetch ADPC satellite forecast from BigQuery ───────────────────────
 
   async getAdpcForecastForCountry(country: string): Promise<AdpcForecast | null> {
@@ -297,42 +349,59 @@ export class RAGService {
     const resolvedCountry = country ?? (city ? CITY_COUNTRY[city.toLowerCase()] : undefined)
 
     // Run embedding + all BigQuery lookups in parallel
-    const [queryVector, aqiReading, globalAqi, adpcForecast] = await Promise.all([
+    // Run embedding + initial lookups
+    const [queryVector, cityAqi, cityGlobal, adpc] = await Promise.all([
       this._embed(question),
       city ? this.getAqiForCity(city) : Promise.resolve(null),
       city ? this.getGlobalAqiForCity(city) : Promise.resolve(null),
       resolvedCountry ? this.getAdpcForecastForCountry(resolvedCountry) : Promise.resolve(null),
     ])
 
+    // If no specific city data found, and we have a "city" input that might be a country, try country lookup
+    let finalGlobalAqi = cityGlobal
+    let finalAdpc = adpc
+
+    if (!finalGlobalAqi && city && !cityAqi) {
+      // Try treating the "city" input as a country
+      const countryData = await this.getCountryAggregatedData(city)
+      if (countryData) {
+        finalGlobalAqi = countryData
+        // Also try fetching ADPC for this "city-as-country"
+        if (!finalAdpc) {
+          finalAdpc = await this.getAdpcForecastForCountry(countryData.country)
+        }
+      }
+    }
+
     const chunks = await this._retrieveChunks(queryVector)
 
     // Build grounded prompt
-    const aqiSection = aqiReading
+    const aqiSection = cityAqi
       ? `Live sensor reading:\n` +
-        `- City: ${aqiReading.city}\n` +
-        `- PM2.5: ${aqiReading.pm25} µg/m³\n` +
-        `- Recorded: ${aqiReading.timestamp}\n`
+        `- City: ${cityAqi.city}\n` +
+        `- PM2.5: ${cityAqi.pm25} µg/m³\n` +
+        `- Recorded: ${cityAqi.timestamp}\n`
       : ''
 
-    const globalAqiSection = globalAqi
-      ? `Multi-pollutant reading for ${globalAqi.city}, ${globalAqi.country} (${globalAqi.timestamp}):\n` +
-        `- AQI Class: ${globalAqi.aqiClass}\n` +
-        (globalAqi.pm25 != null ? `- PM2.5: ${globalAqi.pm25} µg/m³\n` : '') +
-        (globalAqi.pm10 != null ? `- PM10: ${globalAqi.pm10} µg/m³\n` : '') +
-        (globalAqi.no2 != null ? `- NO2: ${globalAqi.no2} µg/m³\n` : '') +
-        (globalAqi.so2 != null ? `- SO2: ${globalAqi.so2} µg/m³\n` : '') +
-        (globalAqi.co != null ? `- CO: ${globalAqi.co} µg/m³\n` : '') +
-        (globalAqi.ozone != null ? `- Ozone: ${globalAqi.ozone} µg/m³\n` : '') +
-        (globalAqi.aerosolOpticalDepth != null
-          ? `- Aerosol Optical Depth: ${globalAqi.aerosolOpticalDepth}\n`
+    const globalAqiSection = finalGlobalAqi
+      ? `Multi-pollutant reading for ${finalGlobalAqi.city}, ${finalGlobalAqi.country} (${finalGlobalAqi.timestamp}):\n` +
+        (finalGlobalAqi.aqiClass ? `- AQI Class: ${finalGlobalAqi.aqiClass}\n` : '') +
+        (finalGlobalAqi.pm25 != null ? `- PM2.5: ${finalGlobalAqi.pm25} µg/m³\n` : '') +
+        (finalGlobalAqi.pm10 != null ? `- PM10: ${finalGlobalAqi.pm10} µg/m³\n` : '') +
+        (finalGlobalAqi.no2 != null ? `- NO2: ${finalGlobalAqi.no2} µg/m³\n` : '') +
+        (finalGlobalAqi.so2 != null ? `- SO2: ${finalGlobalAqi.so2} µg/m³\n` : '') +
+        (finalGlobalAqi.co != null ? `- CO: ${finalGlobalAqi.co} µg/m³\n` : '') +
+        (finalGlobalAqi.ozone != null ? `- Ozone: ${finalGlobalAqi.ozone} µg/m³\n` : '') +
+        (finalGlobalAqi.aerosolOpticalDepth != null
+          ? `- Aerosol Optical Depth: ${finalGlobalAqi.aerosolOpticalDepth}\n`
           : '')
       : ''
 
-    const adpcSection = adpcForecast
-      ? `ADPC Satellite Forecast for ${adpcForecast.country} (model init: ${adpcForecast.initDate}):\n` +
-        `- Average PM2.5: ${adpcForecast.avgPm25} µg/m³\n` +
-        `- Peak PM2.5: ${adpcForecast.maxPm25} µg/m³\n` +
-        `- Forecast start: ${adpcForecast.nearestForecast}\n`
+    const adpcSection = finalAdpc
+      ? `ADPC Satellite Forecast for ${finalAdpc.country} (model init: ${finalAdpc.initDate}):\n` +
+        `- Average PM2.5: ${finalAdpc.avgPm25} µg/m³\n` +
+        `- Peak PM2.5: ${finalAdpc.maxPm25} µg/m³\n` +
+        `- Forecast start: ${finalAdpc.nearestForecast}\n`
       : ''
 
     const ragSection =
@@ -368,9 +437,9 @@ export class RAGService {
     return {
       answer,
       sources,
-      aqi: aqiReading ?? undefined,
-      globalAqi: globalAqi ?? undefined,
-      adpc: adpcForecast ?? undefined,
+      aqi: cityAqi ?? undefined,
+      globalAqi: finalGlobalAqi ?? undefined,
+      adpc: finalAdpc ?? undefined,
     }
   }
 }

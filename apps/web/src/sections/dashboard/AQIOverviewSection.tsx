@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { trpc } from '@/lib/trpc'
 import { AQI_SCALE_SEGMENTS } from '@/sections/search/searchConstants'
 import { getAqiBadgeClass, getAqiScaleIndex, getAqiTextColor } from '@/sections/search/searchUtils'
+import { useAuth } from '@/hooks/useAuth'
 
 const TEN_MINUTES_MS = 10 * 60 * 1000
 
@@ -14,9 +15,11 @@ interface AQIOverviewSectionProps {
 
 const AQIOverviewSection = ({ homeCity }: AQIOverviewSectionProps) => {
   const city = homeCity ?? 'Manila'
+  const { user, loading } = useAuth()
   const { data, isLoading, isError } = trpc.chat.currentAqi.useQuery(
     { city },
     {
+      enabled: !loading && !!user,
       staleTime: TEN_MINUTES_MS,
       gcTime: TEN_MINUTES_MS,
       refetchInterval: TEN_MINUTES_MS,

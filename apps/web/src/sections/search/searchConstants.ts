@@ -13,12 +13,15 @@ export const AQI_SCALE_SEGMENTS = [
 ]
 
 export const POPULAR_SEARCHES = [
-  'Lahore',
-  'Delhi',
-  'Beijing',
-  'New York',
-  'London',
-  'Dhaka',
-  'Sao Paulo',
-  'Jakarta',
+  'Thailand',
+  'Vietnam',
+  'Cambodia',
+  'Laos',
+  'Myanmar',
+  'Malaysia',
+  'Indonesia',
+  'Philippines',
+  'Singapore',
+  'Brunei',
+  'Timor-Leste',
 ]

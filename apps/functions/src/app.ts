@@ -9,19 +9,23 @@ import type { TrpcContext } from './trpc/trpc.js'
 const app = express()
 
 if (getApps().length === 0) {
-  initializeApp()
+  initializeApp({ projectId: 'aircare-sea' })
 }
 
 function getBearerToken(headerValue: string | undefined): string | null {
   if (!headerValue) return null
-  const [scheme, token] = headerValue.split(' ')
-  if (scheme !== 'Bearer' || !token) return null
-  return token
+  const m = headerValue.match(/^Bearer\s+(.+)$/i)
+  return m?.[1] ?? null
 }
 
 async function createContext(opts: { req: express.Request }): Promise<TrpcContext> {
-  const token = getBearerToken(opts.req.header('authorization'))
+  const authz = opts.req.header('authorization')
+  const token = getBearerToken(authz ?? undefined)
   if (!token) {
+    console.warn('Auth missing/invalid', {
+      hasAuthorizationHeader: !!authz,
+      authPrefix: authz?.slice(0, 20) ?? null, // do not log full token
+    })
     return { user: null }
   }
 
@@ -33,7 +37,8 @@ async function createContext(opts: { req: express.Request }): Promise<TrpcContex
         email: decoded.email ?? null,
       },
     }
-  } catch {
+  } catch (err) {
+    console.error('verifyIdToken failed:', err)
     return { user: null }
   }
 }
