@@ -44,7 +44,7 @@ const DashboardPage = () => {
             <h1 className="text-lg font-semibold text-foreground">
               {greeting}, {firstName}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground capitalize">
               {homeCity ?? 'Set your location'} · {today}
             </p>
           </div>

@@ -2,7 +2,7 @@ import { type ReactNode } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { ProtectedRoute } from '@/router/ProtectedRoute'
-import SplashPage from '@/pages/onboarding/SplashPage'
+// import SplashPage from '@/pages/onboarding/SplashPage'
 import HealthProfilePage from '@/pages/onboarding/HealthProfilePage'
 import HomeCityPage from '@/pages/onboarding/HomeCityPage'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
@@ -26,7 +26,7 @@ export const AppRouter = () => {
         path="/"
         element={
           <PublicOnlyRoute>
-            <SplashPage />
+            <LoginPage />
           </PublicOnlyRoute>
         }
       />
