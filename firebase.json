@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "public": "apps/web/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+  },
+  "functions": [
+    {
+      "source": "apps/functions",
+      "codebase": "api",
+      "predeploy": ["pnpm -C apps/functions run build:deploy"],
+      "runtime": "nodejs20"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { router, publicProcedure } from '../trpc'
-import { RAGService } from '../../services/ragService'
-import { OpenAQClient } from '../../services/openaqClient'
+import { router, publicProcedure } from '../trpc.js'
+import { RAGService } from '../../services/ragService.js'
+import { OpenAQClient } from '../../services/openaqClient.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 const OPENAQ_API_KEY = process.env.OPENAQ_API_KEY

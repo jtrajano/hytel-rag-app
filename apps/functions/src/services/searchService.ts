@@ -12,7 +12,7 @@
 
 import { BigQuery } from '@google-cloud/bigquery'
 import { VertexAI } from '@google-cloud/vertexai'
-import { OpenAQClient } from './openaqClient'
+import { OpenAQClient } from './openaqClient.js'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -239,7 +239,10 @@ export class SearchService {
         result.measurements!.find(m => m.parameter === param)?.value ?? null
       return {
         city: result.city ?? result.location ?? searchQuery,
-        country: result.country ?? '',
+        country:
+          typeof result.country === 'string'
+            ? result.country
+            : result.country?.code ?? result.country?.name ?? '',
         pm25: get('pm25'),
         pm10: get('pm10'),
         no2: get('no2'),
@@ -430,8 +433,13 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
       const aqi = pm25ToAqi(pm25)
       const category = aqiToCategory(aqi)
       // OpenAQ returns ISO 2-letter codes (e.g. "PH") — flag map uses full names,
-      // so most OpenAQ results will fall back to the globe emoji.
-      const flagEmoji = COUNTRY_FLAG[openaqRow.country.toLowerCase()] ?? '🌍'
+      // so we try generating the flag from the code if it's missing from the map.
+      const code = openaqRow.country.toUpperCase()
+      const flagEmoji =
+        COUNTRY_FLAG[openaqRow.country.toLowerCase()] ??
+        (/^[A-Z]{2}$/.test(code)
+          ? code.replace(/./g, (char: string) => String.fromCodePoint(char.charCodeAt(0) + 127397))
+          : '🌍')
 
       const aiContent = await this.generateContent(
         openaqRow.country ? `${openaqRow.city}, ${openaqRow.country}` : openaqRow.city,

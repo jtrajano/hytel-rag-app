@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "serve": "tsx watch --env-file ../../.env.local src/server.ts"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

@@ -4,7 +4,7 @@ import type { AppRouter } from '@repo/functions/router'
 
 export const trpc = createTRPCReact<AppRouter>()
 
-const url = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/trpc'
+const url = import.meta.env.VITE_API_URL || 'http://localhost:5001/trpc'
 
 export const trpcClient = trpc.createClient({
   links: [

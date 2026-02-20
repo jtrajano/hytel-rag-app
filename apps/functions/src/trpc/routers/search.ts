@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { router, publicProcedure } from '../trpc'
-import { SearchService } from '../../services/searchService'
+import { router, publicProcedure } from '../trpc.js'
+import { SearchService } from '../../services/searchService.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 

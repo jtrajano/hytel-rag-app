@@ -98,3 +98,4 @@ public/dist
 agent
 tmp/*
 *.csv
+apps/functions/vendor/shared/

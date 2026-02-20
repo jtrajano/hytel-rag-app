@@ -80,3 +80,14 @@ pnpm run serve
 
 pnpm --filter @repo/functions
 pnpm --filter web dev
+
+### when error in chat.ask api happens
+
+``
+gcloud auth application-default login
+gcloud auth application-default set-quota-project aircare-sea
+gcloud auth application-default print-access-token
+
+```
+
+```
