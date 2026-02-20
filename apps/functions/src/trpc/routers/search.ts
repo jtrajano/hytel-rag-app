@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { router, publicProcedure } from '../trpc.js'
+import { router, protectedProcedure } from '../trpc.js'
 import { SearchService } from '../../services/searchService.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
@@ -41,7 +41,7 @@ const CitySearchResultSchema = z
   .nullable()
 
 export const searchRouter = router({
-  byCity: publicProcedure
+  byCity: protectedProcedure
     .input(z.object({ query: z.string().min(1).max(100) }))
     .output(CitySearchResultSchema)
     .query(async ({ input }) => {

@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import { router, publicProcedure } from '../trpc.js'
+import { router, protectedProcedure } from '../trpc.js'
 import { CreateUserSchema, UserSchema } from '@repo/shared/schemas'
 
 export const userRouter = router({
-  create: publicProcedure
+  create: protectedProcedure
     .input(CreateUserSchema)
     .output(UserSchema)
     .mutation(({ input }) => ({
@@ -12,7 +12,7 @@ export const userRouter = router({
       name: input.name,
     })),
 
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.string())
     .output(UserSchema)
     .query(({ input }) => ({
@@ -21,7 +21,7 @@ export const userRouter = router({
       name: 'Test User',
     })),
 
-  list: publicProcedure.output(z.array(UserSchema)).query(() => [
+  list: protectedProcedure.output(z.array(UserSchema)).query(() => [
     { id: 'user-1', email: 'user1@example.com', name: 'User One' },
     { id: 'user-2', email: 'user2@example.com', name: 'User Two' },
   ]),

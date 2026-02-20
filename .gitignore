@@ -99,3 +99,4 @@ agent
 tmp/*
 *.csv
 apps/functions/vendor/shared/
+.env.*

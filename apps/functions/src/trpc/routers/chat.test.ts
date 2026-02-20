@@ -13,7 +13,12 @@ vi.mock('../../services/ragService', () => ({
 
 // ── Caller (bypasses HTTP entirely — no GET/POST involved) ────────────────────
 const createCaller = createCallerFactory(appRouter)
-const caller = createCaller({})
+const caller = createCaller({
+  user: {
+    uid: 'test-user',
+    email: 'test@example.com',
+  },
+})
 
 // ── Default stub response ──────────────────────────────────────────────────────
 const STUB_ANSWER: RagAnswer = {

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { router, publicProcedure } from '../trpc.js'
+import { router, protectedProcedure } from '../trpc.js'
 import { RAGService } from '../../services/ragService.js'
 import { OpenAQClient } from '../../services/openaqClient.js'
 
@@ -45,7 +45,7 @@ function aqiToCategory(
 }
 
 export const chatRouter = router({
-  currentAqi: publicProcedure
+  currentAqi: protectedProcedure
     .input(
       z.object({
         city: z.string().min(1).max(100).default('Manila'),
@@ -84,7 +84,7 @@ export const chatRouter = router({
           new Date().toISOString(),
       }
     }),
-  ask: publicProcedure
+  ask: protectedProcedure
     .input(
       z.object({
         question: z.string().min(1).max(500),
