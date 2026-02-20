@@ -10,6 +10,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { reverseGeocode } from '@/lib/reverseGeocode'
+import { trpc } from '@/lib/trpc'
 
 import { POPULAR_SEARCHES } from '../search/searchConstants'
 
@@ -18,17 +19,36 @@ const HomeCitySection = () => {
   const navigate = useNavigate()
   const [cityInput, setCityInput] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
+
+  const utils = trpc.useUtils()
 
   const { getLocation, loading: locating, error: locationError } = useGeolocation()
 
   const handleCompleteSetup = async () => {
     const city = cityInput.trim()
     if (!city || !user) return
+
+    setValidationError(null)
     setIsSaving(true)
+
     try {
+      // Validate that the location exists in our data sources
+      const result = await utils.search.byCity.fetch({ query: city })
+
+      if (!result) {
+        setValidationError(
+          'Location not found. Please check spelling or try a different city/country.'
+        )
+        setIsSaving(false)
+        return
+      }
+
       await setDoc(doc(db, 'users', user.uid), { homeCity: city }, { merge: true })
       navigate('/dashboard')
-    } finally {
+    } catch (error) {
+      console.error('Error validating location:', error)
+      setValidationError('Unable to validate location. Please try again.')
       setIsSaving(false)
     }
   }
@@ -94,6 +114,10 @@ const HomeCitySection = () => {
           }}
         />
       </div>
+
+      {validationError && (
+        <p className="text-xs text-destructive mb-6 -mt-4 pl-1">{validationError}</p>
+      )}
 
       {/* Quick select cities */}
       <div className="mb-10">
