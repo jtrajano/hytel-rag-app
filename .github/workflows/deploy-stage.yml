@@ -26,7 +26,7 @@ on:
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '8'
-  FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+  FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
 
 # ============================================================================
 # CONCURRENCY
@@ -79,8 +79,13 @@ jobs:
       - name: Build
         run: pnpm build
         env:
-          # TODO: Update with your staging API URL
-          VITE_API_URL: https://stage-api.example.com
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
 
       # ======================================================================
       # WIF Authentication
@@ -89,8 +94,11 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SA_EMAIL }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
 
       # ======================================================================
       # Deploy to Firebase
@@ -102,6 +110,20 @@ jobs:
 
       - name: Prepare Functions Manifest for Firebase Build
         run: node scripts/prepare-functions-deploy-manifest.mjs
+
+      - name: Sync OPENAQ_API_KEY to Secret Manager
+        env:
+          OPENAQ_API_KEY: ${{ secrets.OPENAQ_API_KEY }}
+        run: |
+          if [ -z "$OPENAQ_API_KEY" ]; then
+            echo "::error::Missing required GitHub secret OPENAQ_API_KEY"
+            exit 1
+          fi
+          if gcloud secrets describe OPENAQ_API_KEY --project "$FIREBASE_PROJECT_ID" >/dev/null 2>&1; then
+            printf "%s" "$OPENAQ_API_KEY" | gcloud secrets versions add OPENAQ_API_KEY --project "$FIREBASE_PROJECT_ID" --data-file=-
+          else
+            printf "%s" "$OPENAQ_API_KEY" | gcloud secrets create OPENAQ_API_KEY --project "$FIREBASE_PROJECT_ID" --replication-policy=automatic --data-file=-
+          fi
 
       - name: Deploy Firebase Functions
         run: firebase deploy --project "$FIREBASE_PROJECT_ID" --only functions

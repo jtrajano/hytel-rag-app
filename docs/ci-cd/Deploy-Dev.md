@@ -71,8 +71,8 @@ The workflow uses **secrets** for WIF configuration:
 - name: Authenticate to Google Cloud
   uses: google-github-actions/auth@v2
   with:
-    workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-    service_account: ${{ secrets.GCP_SA_EMAIL }}
+    workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+    service_account: ${{ vars.GCP_SA_EMAIL }}
 ```
 
 ### Required Secrets

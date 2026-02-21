@@ -1,5 +1,5 @@
 import { createTRPCReact } from '@trpc/react-query'
-import { httpBatchLink } from '@trpc/client'
+import { httpLink } from '@trpc/client'
 import type { AppRouter } from '@repo/functions/router'
 import { auth } from './firebase'
 
@@ -8,6 +8,10 @@ export const trpc = createTRPCReact<AppRouter>()
 const url = import.meta.env.VITE_API_URL || 'http://localhost:5001/trpc'
 
 async function getAuthHeaders() {
+  if (typeof auth.authStateReady === 'function') {
+    await auth.authStateReady()
+  }
+
   const user = auth.currentUser
   if (!user) return {}
 
@@ -17,7 +21,7 @@ async function getAuthHeaders() {
 
 export const trpcClient = trpc.createClient({
   links: [
-    httpBatchLink({
+    httpLink({
       url,
       headers: getAuthHeaders,
     }),
