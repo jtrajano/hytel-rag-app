@@ -123,10 +123,10 @@ importers:
         version: 5.90.20(react@18.3.1)
       '@trpc/client':
         specifier: ^11.0.0-rc.660
-        version: 11.8.1(@trpc/server@11.8.1)(typescript@5.5.4)
+        version: 11.8.1(@trpc/server@11.8.1)(typescript@5.9.3)
       '@trpc/react-query':
         specifier: ^11.0.0-rc.660
-        version: 11.8.1(@tanstack/react-query@5.90.20)(@trpc/client@11.8.1)(@trpc/server@11.8.1)(react-dom@18.3.1)(react@18.3.1)(typescript@5.5.4)
+        version: 11.8.1(@tanstack/react-query@5.90.20)(@trpc/client@11.8.1)(@trpc/server@11.8.1)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -155,7 +155,7 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.19)
       zod:
-        specifier: ^3.23.8
+        specifier: 3.25.76
         version: 3.25.76
     devDependencies:
       '@repo/config':
@@ -198,8 +198,8 @@ importers:
         specifier: ^3.4.19
         version: 3.4.19
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: ^5.7.2
+        version: 5.9.3
       vite:
         specifier: ^5.1.4
         version: 5.1.4(@types/node@25.2.3)
@@ -224,7 +224,7 @@ importers:
   packages/shared:
     dependencies:
       zod:
-        specifier: ^3.23.8
+        specifier: 3.25.76
         version: 3.25.76
     devDependencies:
       '@repo/config':
@@ -237,8 +237,8 @@ importers:
         specifier: ^8.57.0
         version: 8.57.1
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: ^5.7.2
+        version: 5.9.3
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(jsdom@25.0.1)
@@ -288,8 +288,8 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       typescript:
-        specifier: 5.5.4
-        version: 5.5.4
+        specifier: ^5.7.2
+        version: 5.9.3
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(jsdom@25.0.1)
@@ -2460,17 +2460,17 @@ packages:
     requiresBuild: true
     dev: false
 
-  /@trpc/client@11.8.1(@trpc/server@11.8.1)(typescript@5.5.4):
+  /@trpc/client@11.8.1(@trpc/server@11.8.1)(typescript@5.9.3):
     resolution: {integrity: sha512-L/SJFGanr9xGABmuDoeXR4xAdHJmsXsiF9OuH+apecJ+8sUITzVT1EPeqp0ebqA6lBhEl5pPfg3rngVhi/h60Q==}
     peerDependencies:
       '@trpc/server': 11.8.1
       typescript: '>=5.7.2'
     dependencies:
-      '@trpc/server': 11.8.1(typescript@5.5.4)
-      typescript: 5.5.4
+      '@trpc/server': 11.8.1(typescript@5.9.3)
+      typescript: 5.9.3
     dev: false
 
-  /@trpc/react-query@11.8.1(@tanstack/react-query@5.90.20)(@trpc/client@11.8.1)(@trpc/server@11.8.1)(react-dom@18.3.1)(react@18.3.1)(typescript@5.5.4):
+  /@trpc/react-query@11.8.1(@tanstack/react-query@5.90.20)(@trpc/client@11.8.1)(@trpc/server@11.8.1)(react-dom@18.3.1)(react@18.3.1)(typescript@5.9.3):
     resolution: {integrity: sha512-0Vu55ld/oINb4U6nIPPi7eZMhxUop6K+4QUK90RVsfSD5r+957sM80M4c8bjh/JBZUxMFv9JOhxxlWcrgHxHow==}
     peerDependencies:
       '@tanstack/react-query': ^5.80.3
@@ -2481,19 +2481,11 @@ packages:
       typescript: '>=5.7.2'
     dependencies:
       '@tanstack/react-query': 5.90.20(react@18.3.1)
-      '@trpc/client': 11.8.1(@trpc/server@11.8.1)(typescript@5.5.4)
-      '@trpc/server': 11.8.1(typescript@5.5.4)
+      '@trpc/client': 11.8.1(@trpc/server@11.8.1)(typescript@5.9.3)
+      '@trpc/server': 11.8.1(typescript@5.9.3)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      typescript: 5.5.4
-    dev: false
-
-  /@trpc/server@11.8.1(typescript@5.5.4):
-    resolution: {integrity: sha512-P4rzZRpEL7zDFgjxK65IdyH0e41FMFfTkQkuq0BA5tKcr7E6v9/v38DEklCpoDN6sPiB1Sigy/PUEzHENhswDA==}
-    peerDependencies:
-      typescript: '>=5.7.2'
-    dependencies:
-      typescript: 5.5.4
+      typescript: 5.9.3
     dev: false
 
   /@trpc/server@11.8.1(typescript@5.9.3):
@@ -6691,11 +6683,6 @@ packages:
       mime-types: 2.1.35
     dev: false
 
-  /typescript@5.5.4:
-    resolution: {integrity: sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   /typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
@@ -7128,4 +7115,3 @@ packages:
   /zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
     dev: false
-
