@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { trpc } from '@/lib/trpc'
+import { useAuth } from '@/hooks/useAuth'
 
 // ── Cache helpers (localStorage, 1-hour TTL, keyed by city) ──────────────────
 
@@ -39,6 +40,7 @@ interface MorningSummarySectionProps {
 }
 
 const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
+  const { user, loading } = useAuth()
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -60,6 +62,8 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
   })
 
   useEffect(() => {
+    if (loading) return
+    if (!user) return
     if (!homeCity) return
 
     // Serve from cache if still fresh
@@ -74,7 +78,7 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
       question: `Give me a morning air quality briefing for ${homeCity}. Include the current air quality rating and PM2.5 levels, health recommendations especially for sensitive groups, and the short-term forecast for today.`,
       city: homeCity,
     })
-  }, [homeCity, fetchBriefing])
+  }, [homeCity, fetchBriefing, loading, user])
 
   const answer = cachedAnswer ?? data?.answer
 
