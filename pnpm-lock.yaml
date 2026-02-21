@@ -52,8 +52,8 @@ importers:
         specifier: ^1.9.0
         version: 1.10.0
       '@repo/shared':
-        specifier: file:./vendor/shared
-        version: file:apps/functions/vendor/shared
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@trpc/server':
         specifier: ^11.0.0-rc.660
         version: 11.8.1(typescript@5.9.3)
@@ -7129,7 +7129,3 @@ packages:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
     dev: false
 
-  file:apps/functions/vendor/shared:
-    resolution: {directory: apps/functions/vendor/shared, type: directory}
-    name: '@repo/shared'
-    dev: false

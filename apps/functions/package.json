@@ -31,7 +31,7 @@
     "@google-cloud/bigquery": "^7.0.0",
     "@google-cloud/firestore": "^7.3.0",
     "@google-cloud/vertexai": "^1.9.0",
-    "@repo/shared": "file:./vendor/shared",
+    "@repo/shared": "workspace:*",
     "@trpc/server": "^11.0.0-rc.660",
     "cors": "^2.8.5",
     "express": "^4.21.0",
