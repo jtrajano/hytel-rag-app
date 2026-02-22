@@ -14,6 +14,7 @@ import { BigQuery } from '@google-cloud/bigquery'
 import { VertexAI } from '@google-cloud/vertexai'
 import { OpenAQClient } from './openaqClient.js'
 import { env } from '../config/env.js'
+import { BQClient } from './bqClient.js'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -53,10 +54,6 @@ export interface CitySearchResult {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-
-const DATASET = env.bigquery.dataset
-const GLOBAL_AQI_TABLE = env.bigquery.globalAqiTable
-const ADPC_REGIONS_TABLE = env.bigquery.adpcRegionsTable
 const GEMINI_MODEL = env.vertex.geminiModel
 
 /** Country name (lowercase) → flag emoji */
@@ -181,6 +178,7 @@ export class SearchService {
   private readonly bq: BigQuery
   private readonly vertexai: VertexAI
   private readonly openaq: OpenAQClient | null
+  private readonly bqClient: BQClient
 
   constructor(projectId: string) {
     this.projectId = projectId
@@ -188,42 +186,7 @@ export class SearchService {
     this.vertexai = new VertexAI({ project: env.projectId, location: env.location })
     const apiKey = process.env.OPENAQ_API_KEY
     this.openaq = apiKey ? new OpenAQClient({ apiKey }) : null
-  }
-
-  // ── Step 1: City fetch — the query must appear inside the city name ──────────
-  // One-directional LIKE only: avoids false positives where a short city name
-  // happens to be a substring of a country name (e.g. "an" inside "Pakistan").
-
-  private async fetchCityData(searchQuery: string) {
-    const query = `
-      SELECT
-        city, country,
-        CAST(timestamp AS STRING) AS timestamp,
-        pm25, pm10, no2, so2, co, ozone,
-        aqi_class
-      FROM \`${this.projectId}.${DATASET}.${GLOBAL_AQI_TABLE}\`
-      WHERE LOWER(TRIM(city)) LIKE CONCAT('%', LOWER(TRIM(@searchQuery)), '%')
-      ORDER BY timestamp DESC
-      LIMIT 1
-    `
-    try {
-      const [rows] = await this.bq.query({ query, params: { searchQuery } })
-      if (!rows.length) return null
-      return rows[0] as {
-        city: string
-        country: string
-        timestamp: string
-        pm25: number | null
-        pm10: number | null
-        no2: number | null
-        so2: number | null
-        co: number | null
-        ozone: number | null
-        aqi_class: string | null
-      }
-    } catch {
-      return null
-    }
+    this.bqClient = new BQClient(projectId)
   }
 
   // ── Step 2: OpenAQ live API — wider global city coverage ──────────────────
@@ -254,67 +217,7 @@ export class SearchService {
     }
   }
 
-  // ── Step 3: Country fetch — aggregate AVG across all cities in the country ──
-  // One-directional LIKE: the query must appear inside the country name.
-
-  private async fetchCountryData(searchQuery: string) {
-    // Average all city readings for the matching country to produce a national overview
-    const query = `
-      SELECT
-        country,
-        ROUND(AVG(pm25), 2)   AS pm25,
-        ROUND(AVG(pm10), 2)   AS pm10,
-        ROUND(AVG(no2), 2)    AS no2,
-        ROUND(AVG(so2), 2)    AS so2,
-        ROUND(AVG(co), 2)     AS co,
-        ROUND(AVG(ozone), 2)  AS ozone,
-        CAST(MAX(timestamp) AS STRING) AS timestamp
-      FROM \`${this.projectId}.${DATASET}.${GLOBAL_AQI_TABLE}\`
-      WHERE LOWER(TRIM(country)) LIKE CONCAT('%', LOWER(TRIM(@searchQuery)), '%')
-      GROUP BY country
-      ORDER BY MAX(timestamp) DESC
-      LIMIT 1
-    `
-    try {
-      const [rows] = await this.bq.query({ query, params: { searchQuery } })
-      if (!rows.length) return null
-      return rows[0] as {
-        country: string
-        timestamp: string
-        pm25: number | null
-        pm10: number | null
-        no2: number | null
-        so2: number | null
-        co: number | null
-        ozone: number | null
-      }
-    } catch {
-      return null
-    }
-  }
-
   // ── Step 3: ADPC satellite PM2.5 country lookup ────────────────────────────
-
-  private async fetchAdpcCountryData(searchQuery: string) {
-    const query = `
-      SELECT
-        country,
-        ROUND(AVG(pm25_avg), 2)        AS pm25,
-        CAST(MAX(init_date) AS STRING) AS timestamp
-      FROM \`${this.projectId}.${DATASET}.${ADPC_REGIONS_TABLE}\`
-      WHERE LOWER(TRIM(country)) LIKE CONCAT('%', LOWER(TRIM(@searchQuery)), '%')
-      GROUP BY country
-      ORDER BY MAX(init_date) DESC
-      LIMIT 1
-    `
-    try {
-      const [rows] = await this.bq.query({ query, params: { searchQuery } })
-      if (!rows.length) return null
-      return rows[0] as { country: string; pm25: number | null; timestamp: string }
-    } catch {
-      return null
-    }
-  }
 
   // ── Gemini content generation ──────────────────────────────────────────────
 
@@ -392,7 +295,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
 
   async lookupCity(searchQuery: string): Promise<CitySearchResult | null> {
     // Try city match first
-    const cityRow = await this.fetchCityData(searchQuery)
+    const cityRow = await this.bqClient.fetchCityData(searchQuery)
     if (cityRow) {
       const pm25 = cityRow.pm25 ?? 0
       const pm10 = cityRow.pm10 ?? 0
@@ -464,8 +367,8 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
 
     // Step 3: Fall back to country aggregate — run both tables in parallel
     const [countryRow, adpcRow] = await Promise.all([
-      this.fetchCountryData(searchQuery),
-      this.fetchAdpcCountryData(searchQuery),
+      this.bqClient.fetchCountryData(searchQuery),
+      this.bqClient.fetchAdpcCountryData(searchQuery),
     ])
 
     if (countryRow || adpcRow) {

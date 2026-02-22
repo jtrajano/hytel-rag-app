@@ -178,4 +178,99 @@ export class BQClient {
       return null
     }
   }
+
+  async fetchAdpcCountryData(searchQuery: string) {
+    const query = `
+        SELECT
+          country,
+          ROUND(AVG(pm25_avg), 2)        AS pm25,
+          CAST(MAX(init_date) AS STRING) AS timestamp
+        FROM \`${this.projectId}.${this.dataset}.${this.adpcRegionsTable}\`
+        WHERE LOWER(TRIM(country)) LIKE CONCAT('%', LOWER(TRIM(@searchQuery)), '%')
+        GROUP BY country
+        ORDER BY MAX(init_date) DESC
+        LIMIT 1
+      `
+    try {
+      const [rows] = await this.bq.query({ query, params: { searchQuery } })
+      if (!rows.length) return null
+      return rows[0] as { country: string; pm25: number | null; timestamp: string }
+    } catch {
+      return null
+    }
+  }
+
+  // ── Step 3: Country fetch — aggregate AVG across all cities in the country ──
+  // One-directional LIKE: the query must appear inside the country name.
+
+  async fetchCountryData(searchQuery: string) {
+    // Average all city readings for the matching country to produce a national overview
+    const query = `
+        SELECT
+          country,
+          ROUND(AVG(pm25), 2)   AS pm25,
+          ROUND(AVG(pm10), 2)   AS pm10,
+          ROUND(AVG(no2), 2)    AS no2,
+          ROUND(AVG(so2), 2)    AS so2,
+          ROUND(AVG(co), 2)     AS co,
+          ROUND(AVG(ozone), 2)  AS ozone,
+          CAST(MAX(timestamp) AS STRING) AS timestamp
+        FROM \`${this.projectId}.${this.dataset}.${this.globalAqiTable}\`
+        WHERE LOWER(TRIM(country)) LIKE CONCAT('%', LOWER(TRIM(@searchQuery)), '%')
+        GROUP BY country
+        ORDER BY MAX(timestamp) DESC
+        LIMIT 1
+      `
+    try {
+      const [rows] = await this.bq.query({ query, params: { searchQuery } })
+      if (!rows.length) return null
+      return rows[0] as {
+        country: string
+        timestamp: string
+        pm25: number | null
+        pm10: number | null
+        no2: number | null
+        so2: number | null
+        co: number | null
+        ozone: number | null
+      }
+    } catch {
+      return null
+    }
+  }
+
+  // ── Step 1: City fetch — the query must appear inside the city name ──────────
+  // One-directional LIKE only: avoids false positives where a short city name
+  // happens to be a substring of a country name (e.g. "an" inside "Pakistan").
+  async fetchCityData(searchQuery: string) {
+    const query = `
+      SELECT
+        city, country,
+        CAST(timestamp AS STRING) AS timestamp,
+        pm25, pm10, no2, so2, co, ozone,
+        aqi_class
+      FROM \`${this.projectId}.${this.dataset}.${this.globalAqiTable}\`
+      WHERE LOWER(TRIM(city)) LIKE CONCAT('%', LOWER(TRIM(@searchQuery)), '%')
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `
+    try {
+      const [rows] = await this.bq.query({ query, params: { searchQuery } })
+      if (!rows.length) return null
+      return rows[0] as {
+        city: string
+        country: string
+        timestamp: string
+        pm25: number | null
+        pm10: number | null
+        no2: number | null
+        so2: number | null
+        co: number | null
+        ozone: number | null
+        aqi_class: string | null
+      }
+    } catch {
+      return null
+    }
+  }
 }
