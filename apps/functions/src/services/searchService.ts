@@ -13,6 +13,7 @@
 import { BigQuery } from '@google-cloud/bigquery'
 import { VertexAI } from '@google-cloud/vertexai'
 import { OpenAQClient } from './openaqClient.js'
+import { env } from '../config/env.js'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -53,11 +54,10 @@ export interface CitySearchResult {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const DATASET = 'aircare_sea'
-const GLOBAL_AQI_TABLE = 'global_aqi_reference'
-const ADPC_REGIONS_TABLE = 'adpc_pm25_regions'
-const LOCATION = 'us-central1'
-const GEMINI_MODEL = 'gemini-2.0-flash-001'
+const DATASET = env.bigquery.dataset
+const GLOBAL_AQI_TABLE = env.bigquery.globalAqiTable
+const ADPC_REGIONS_TABLE = env.bigquery.adpcRegionsTable
+const GEMINI_MODEL = env.vertex.geminiModel
 
 /** Country name (lowercase) → flag emoji */
 const COUNTRY_FLAG: Record<string, string> = {
@@ -185,8 +185,8 @@ export class SearchService {
   constructor(projectId: string) {
     this.projectId = projectId
     this.bq = new BigQuery({ projectId })
-    this.vertexai = new VertexAI({ project: projectId, location: LOCATION })
-    const apiKey = process.env.OPENAQ_API_KEY ?? ''
+    this.vertexai = new VertexAI({ project: env.projectId, location: env.location })
+    const apiKey = process.env.OPENAQ_API_KEY
     this.openaq = apiKey ? new OpenAQClient({ apiKey }) : null
   }
 

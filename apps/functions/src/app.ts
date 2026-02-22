@@ -44,6 +44,14 @@ async function createContext(opts: { req: express.Request }): Promise<TrpcContex
 }
 
 app.use(cors({ origin: true }))
+app.use((req, _res, next) => {
+  // Backward-compat: rewrite legacy GET mutation path to query equivalent.
+  if (req.method === 'GET' && req.path === '/trpc/chat.ask') {
+    const suffix = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''
+    req.url = `/trpc/chat.askBriefing${suffix}`
+  }
+  next()
+})
 app.use('/trpc', createExpressMiddleware({ router: appRouter, createContext }))
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 

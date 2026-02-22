@@ -1,5 +1,5 @@
 import { createTRPCReact } from '@trpc/react-query'
-import { httpLink } from '@trpc/client'
+import { httpBatchStreamLink } from '@trpc/client'
 import type { AppRouter } from '@repo/functions/router'
 import { auth } from './firebase'
 
@@ -21,7 +21,8 @@ async function getAuthHeaders() {
 
 export const trpcClient = trpc.createClient({
   links: [
-    httpLink({
+    // Stream link always uses POST, preventing GET-on-mutation transport issues.
+    httpBatchStreamLink({
       url,
       headers: getAuthHeaders,
     }),

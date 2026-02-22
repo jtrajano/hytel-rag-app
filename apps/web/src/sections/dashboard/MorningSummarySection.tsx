@@ -6,8 +6,6 @@ import { Separator } from '@/components/ui/separator'
 import { trpc } from '@/lib/trpc'
 import { useAuth } from '@/hooks/useAuth'
 
-// ── Cache helpers (localStorage, 1-hour TTL, keyed by city) ──────────────────
-
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 function getCached(city: string): string | null {
@@ -29,11 +27,9 @@ function setCached(city: string, answer: string) {
       JSON.stringify({ answer, cachedAt: Date.now() })
     )
   } catch {
-    /* ignore storage quota errors */
+    // ignore storage quota errors
   }
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 interface MorningSummarySectionProps {
   homeCity?: string | null
@@ -41,6 +37,9 @@ interface MorningSummarySectionProps {
 
 const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
   const { user, loading } = useAuth()
+  const [cachedAnswer, setCachedAnswer] = useState<string | null>(null)
+  const [cacheChecked, setCacheChecked] = useState(false)
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -48,81 +47,79 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
     year: 'numeric',
   })
 
-  const [cachedAnswer, setCachedAnswer] = useState<string | null>(null)
-
-  const {
-    mutate: fetchBriefing,
-    isPending,
-    data,
-    isError,
-  } = trpc.chat.ask.useMutation({
-    onSuccess: result => {
-      if (homeCity) setCached(homeCity, result.answer)
-    },
-  })
-
   useEffect(() => {
-    if (loading) return
-    if (!user) return
-    if (!homeCity) return
+    setCacheChecked(false)
+    setCachedAnswer(null)
 
-    // Serve from cache if still fresh
-    const cached = getCached(homeCity)
-    if (cached) {
-      setCachedAnswer(cached)
+    if (!homeCity) {
+      setCacheChecked(true)
       return
     }
 
-    // Cache miss — fetch from RAGService
-    fetchBriefing({
-      question: `Give me a morning air quality briefing for ${homeCity}. Include the current air quality rating and PM2.5 levels, health recommendations especially for sensitive groups, and the short-term forecast for today.`,
-      city: homeCity,
-    })
-  }, [homeCity, fetchBriefing, loading, user])
+    const cached = getCached(homeCity)
+    if (cached) {
+      setCachedAnswer(cached)
+    }
+    setCacheChecked(true)
+  }, [homeCity])
 
-  const answer = cachedAnswer ?? data?.answer
+  const briefingQuery = trpc.chat.askBriefing.useQuery(
+    {
+      question: `Give me a morning air quality briefing for ${homeCity ?? 'my city'}. Include the current air quality rating and PM2.5 levels, health recommendations especially for sensitive groups, and the short-term forecast for today.`,
+      city: homeCity ?? undefined,
+    },
+    {
+      enabled: cacheChecked && !loading && !!user && !!homeCity && !cachedAnswer,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    }
+  )
+
+  useEffect(() => {
+    if (!homeCity || !briefingQuery.data?.answer) return
+    setCached(homeCity, briefingQuery.data.answer)
+  }, [briefingQuery.data?.answer, homeCity])
+
+  const answer = cachedAnswer ?? briefingQuery.data?.answer
+  const isPending = briefingQuery.isPending
+  const isError = briefingQuery.isError
 
   return (
     <Card className="border-border shadow-sm">
       <CardContent className="p-5">
-        {/* Card Header Row */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <Sunrise className="w-5 h-5 text-amber-600" />
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-100">
+            <Sunrise className="h-5 w-5 text-amber-600" />
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Morning Health Briefing
             </p>
             <p className="text-xs text-muted-foreground">
-              {homeCity ?? 'Set your location'} · {today}
+              {homeCity ?? 'Set your location'} - {today}
             </p>
           </div>
         </div>
 
         <Separator className="mb-4" />
 
-        {/* Loading */}
         {isPending && !answer && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-            Generating your morning briefing…
+          <div className="py-2 text-sm text-muted-foreground flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+            Generating your morning briefing...
           </div>
         )}
 
-        {/* Answer (live or from cache) */}
         {answer && (
-          <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{answer}</p>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{answer}</p>
         )}
 
-        {/* Error */}
         {!isPending && isError && !answer && (
           <p className="text-sm text-muted-foreground">
             Unable to load briefing. Please refresh the page.
           </p>
         )}
 
-        {/* No city set */}
         {!isPending && !answer && !isError && (
           <p className="text-sm text-muted-foreground">
             Set your home city to get a personalised morning briefing.
@@ -131,9 +128,8 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
 
         <Separator className="my-4" />
 
-        {/* Gemini Badge */}
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0" />
+          <div className="h-3 w-3 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600" />
           <Badge variant="secondary" className="text-xs font-normal">
             Generated by Gemini AI
           </Badge>

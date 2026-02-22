@@ -43,4 +43,17 @@ export const chatRouter = router({
       const rag = new RAGService(PROJECT_ID)
       return await rag.ask(input.question, input.city, input.country)
     }),
+  // Query mirror for clients that issue GET requests (e.g., stale cached bundles).
+  askBriefing: protectedProcedure
+    .input(
+      z.object({
+        question: z.string().min(1).max(500),
+        city: z.string().optional(),
+        country: z.string().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      const rag = new RAGService(PROJECT_ID)
+      return await rag.ask(input.question, input.city, input.country)
+    }),
 })

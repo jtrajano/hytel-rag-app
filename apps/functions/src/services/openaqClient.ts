@@ -32,6 +32,16 @@ export interface OpenAQLatestResult {
   measurements?: OpenAQMeasurement[]
 }
 
+export interface OpenAQLiveCityReading {
+  city: string
+  country: string | null
+  timestamp: string
+  pm25: number | null
+  pm10: number | null
+  no2: number | null
+  o3: number | null
+}
+
 export interface OpenAQClientOptions {
   apiKey: string
   baseUrl?: string
@@ -134,6 +144,30 @@ export class OpenAQClient {
     )
 
     return Object.fromEntries(entries)
+  }
+
+  async getLiveByCity(city: string, latestLimit = 5): Promise<OpenAQLiveCityReading | null> {
+    const result = await this.getCurrentByCity(city, latestLimit)
+    if (!result?.measurements?.length) return null
+
+    const get = (parameter: string) =>
+      result.measurements!.find(m => this.normalize(m.parameter) === parameter)?.value ?? null
+
+    return {
+      city: result.city ?? result.location ?? city,
+      country:
+        typeof result.country === 'string'
+          ? result.country
+          : result.country?.code ?? result.country?.name ?? null,
+      timestamp:
+        result.measurements[0]?.datetime?.utc ??
+        result.measurements[0]?.datetime?.local ??
+        new Date().toISOString(),
+      pm25: get('pm25') ?? get('pm2.5'),
+      pm10: get('pm10'),
+      no2: get('no2'),
+      o3: get('o3'),
+    }
   }
 
   private async getCandidateLocationsByCity(city: string): Promise<OpenAQLocation[]> {

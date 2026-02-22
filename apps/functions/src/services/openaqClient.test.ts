@@ -194,4 +194,44 @@ describe('OpenAQClient', () => {
       'OpenAQ request failed (429): rate limited'
     )
   })
+
+  it('maps live city reading fields for RAG consumption', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        makeJsonResponse({ results: [{ id: 183, code: 'PH', name: 'Philippines' }] })
+      )
+      .mockResolvedValueOnce(
+        makeJsonResponse({ results: [{ id: 777, name: 'Manila Station', city: 'Manila' }] })
+      )
+      .mockResolvedValueOnce(
+        makeJsonResponse({
+          results: [
+            {
+              locationId: 777,
+              city: 'Manila',
+              country: 'PH',
+              measurements: [
+                { parameter: 'pm25', value: 23.4, datetime: { utc: '2026-02-20T00:00:00Z' } },
+                { parameter: 'pm10', value: 40.2 },
+                { parameter: 'no2', value: 18.1 },
+              ],
+            },
+          ],
+        })
+      )
+
+    const client = new OpenAQClient({ apiKey: 'test-key', fetchImpl: fetchMock })
+    const live = await client.getLiveByCity('Manila')
+
+    expect(live).toEqual({
+      city: 'Manila',
+      country: 'PH',
+      timestamp: '2026-02-20T00:00:00Z',
+      pm25: 23.4,
+      pm10: 40.2,
+      no2: 18.1,
+      o3: null,
+    })
+  })
 })
