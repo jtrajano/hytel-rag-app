@@ -12,7 +12,7 @@ const envSchema = z.object({
   DEFAULT_LOCATION: z.string().default('asia-southeast1'),
   VERTEX_LOCATION: z.string().default('us-central1'),
   VERTEX_EMBEDDING_MODEL: z.string().default('text-embedding-004'),
-  VERTEX_GEMINI_MODEL: z.string().default('gemini-2.0-flash-001'),
+  VERTEX_GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
   BQ_DATASET: z.string().default('aircare_sea'),
   BQ_GLOBAL_AQI_TABLE: z.string().default('global_aqi_reference'),
   BQ_ADPC_REGIONS_TABLE: z.string().default('adpc_pm25_regions'),
