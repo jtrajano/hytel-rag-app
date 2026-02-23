@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, MessageSquare, LogOut } from 'lucide-react'
+import { Search, MessageSquare, LogOut, MapPin } from 'lucide-react'
 import { doc, getDoc } from 'firebase/firestore'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -90,6 +90,17 @@ const DashboardPage = () => {
             <Link to="/chat">
               <MessageSquare className="w-4 h-4" />
               Ask AI
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <Link to="/map">
+              <MapPin className="w-4 h-4" />
+              Map
             </Link>
           </Button>
         </div>

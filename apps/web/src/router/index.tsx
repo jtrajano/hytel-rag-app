@@ -9,6 +9,7 @@ import DashboardPage from '@/pages/dashboard/DashboardPage'
 import SearchPage from '@/pages/search/SearchPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import ChatPage from '@/pages/chat/ChatPage'
+import PollutionMapPage from '@/pages/map/PollutionMapPage'
 
 // Redirects authenticated users based on signInRedirect (new user → onboarding, returning → dashboard)
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
@@ -46,6 +47,7 @@ export const AppRouter = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/map" element={<PollutionMapPage />} />
       </Route>
     </Routes>
   )
