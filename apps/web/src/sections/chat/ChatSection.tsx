@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Bot, User, Loader2, MessageSquare, ChevronLeft, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -33,6 +34,19 @@ const SUGGESTED_QUESTIONS = [
   'How does air pollution affect children with asthma?',
 ]
 
+// ── Markdown renderer ──────────────────────────────────────────────────────────
+
+const markdownComponents: Components = {
+  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+  ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-0.5">{children}</ol>,
+  li: ({ children }) => <li>{children}</li>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  h1: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
+  h2: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
+  h3: ({ children }) => <p className="font-medium mb-1">{children}</p>,
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function MessageBubble({ message }: { message: Message }) {
@@ -61,7 +75,11 @@ function MessageBubble({ message }: { message: Message }) {
               : 'bg-muted text-foreground rounded-tl-sm'
           )}
         >
-          {message.content}
+          {isUser ? (
+            message.content
+          ) : (
+            <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
+          )}
         </div>
 
         {/* Source citations */}
@@ -266,7 +284,7 @@ const ChatSection = () => {
         <div className="max-w-2xl mx-auto mt-2 flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0" />
           <p className="text-xs text-muted-foreground">
-            Powered by Gemini AI · Responses are for informational purposes only
+            Responses are for informational purposes only
           </p>
         </div>
       </div>

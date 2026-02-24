@@ -32,10 +32,6 @@ const ForecastSection = ({ homeCity }: ForecastSectionProps) => {
           <CardTitle className="text-base font-semibold text-foreground">
             72-Hour Forecast
           </CardTitle>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex-shrink-0" />
-            <span className="text-xs text-muted-foreground">Powered by Vertex AI</span>
-          </div>
         </div>
       </CardHeader>
 

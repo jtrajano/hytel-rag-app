@@ -31,9 +31,6 @@ const SplashSection = () => {
       >
         <Link to="/onboarding/profile">Get Started</Link>
       </Button>
-
-      {/* Footnote */}
-      <p className="mt-8 text-xs text-white/50">Powered by Gemini AI + Vertex AI</p>
     </div>
   )
 }

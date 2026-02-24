@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, Loader2 } from 'lucide-react'
+import { Clock, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -63,13 +63,9 @@ const AQIOverviewSection = ({ homeCity }: AQIOverviewSectionProps) => {
                 >
                   {quality}
                 </Badge>
-                <span className="text-xs text-muted-foreground">US AQI</span>
+                <span className="text-xs text-muted-foreground">AQI</span>
               </div>
             </div>
-          </div>
-
-          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
           </div>
         </div>
       </div>
@@ -101,7 +97,7 @@ const AQIOverviewSection = ({ homeCity }: AQIOverviewSectionProps) => {
           <span>
             {isError
               ? 'Unable to load OpenAQ data right now.'
-              : `Last updated: ${updatedLabel ?? '--'} · Data from OpenAQ`}
+              : `Last updated: ${updatedLabel ?? '--'}`}
           </span>
         </div>
       </CardContent>

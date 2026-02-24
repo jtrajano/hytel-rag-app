@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Sunrise, Loader2 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -111,7 +112,26 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
         )}
 
         {answer && (
-          <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{answer}</p>
+          <div className="text-sm leading-relaxed text-foreground">
+            <ReactMarkdown
+              components={{
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                ul: ({ children }) => (
+                  <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal list-inside mb-2 space-y-0.5">{children}</ol>
+                ),
+                li: ({ children }) => <li>{children}</li>,
+                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                h1: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
+                h2: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
+                h3: ({ children }) => <p className="font-medium mb-1">{children}</p>,
+              }}
+            >
+              {answer}
+            </ReactMarkdown>
+          </div>
         )}
 
         {!isPending && isError && !answer && (

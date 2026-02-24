@@ -1,0 +1,235 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [100.5018, 13.7563] },
+      "properties": { "name": "Bangkok", "country": "Thailand" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [98.9853, 18.7883] },
+      "properties": { "name": "Chiang Mai", "country": "Thailand" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [98.3923, 7.8804] },
+      "properties": { "name": "Phuket", "country": "Thailand" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [100.8825, 12.9236] },
+      "properties": { "name": "Pattaya", "country": "Thailand" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [100.4646, 7.0084] },
+      "properties": { "name": "Hat Yai", "country": "Thailand" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [102.6322, 17.9757] },
+      "properties": { "name": "Nakhon Ratchasima", "country": "Thailand" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [105.8542, 21.0285] },
+      "properties": { "name": "Hanoi", "country": "Vietnam" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [106.6297, 10.8231] },
+      "properties": { "name": "Ho Chi Minh City", "country": "Vietnam" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [108.2022, 16.0544] },
+      "properties": { "name": "Da Nang", "country": "Vietnam" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [107.5909, 16.4637] },
+      "properties": { "name": "Hue", "country": "Vietnam" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [105.7469, 10.0452] },
+      "properties": { "name": "Can Tho", "country": "Vietnam" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [106.3412, 20.8449] },
+      "properties": { "name": "Hai Phong", "country": "Vietnam" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [104.9282, 11.5564] },
+      "properties": { "name": "Phnom Penh", "country": "Cambodia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [103.856, 13.3633] },
+      "properties": { "name": "Siem Reap", "country": "Cambodia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [102.9282, 10.6097] },
+      "properties": { "name": "Sihanoukville", "country": "Cambodia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [102.6331, 17.9757] },
+      "properties": { "name": "Vientiane", "country": "Laos" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [102.1347, 19.8845] },
+      "properties": { "name": "Luang Prabang", "country": "Laos" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [96.1951, 16.8661] },
+      "properties": { "name": "Yangon", "country": "Myanmar" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [96.0891, 21.9588] },
+      "properties": { "name": "Mandalay", "country": "Myanmar" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [96.0785, 19.7633] },
+      "properties": { "name": "Naypyidaw", "country": "Myanmar" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [96.1664, 17.3293] },
+      "properties": { "name": "Bago", "country": "Myanmar" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6869, 3.139] },
+      "properties": { "name": "Kuala Lumpur", "country": "Malaysia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [100.3288, 5.4141] },
+      "properties": { "name": "George Town", "country": "Malaysia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [103.7414, 1.4927] },
+      "properties": { "name": "Johor Bahru", "country": "Malaysia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [116.0753, 5.9788] },
+      "properties": { "name": "Kota Kinabalu", "country": "Malaysia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.0901, 4.5975] },
+      "properties": { "name": "Ipoh", "country": "Malaysia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.5185, 3.0733] },
+      "properties": { "name": "Shah Alam", "country": "Malaysia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [110.34, 1.5497] },
+      "properties": { "name": "Kuching", "country": "Malaysia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [106.8456, -6.2088] },
+      "properties": { "name": "Jakarta", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [112.7521, -7.2575] },
+      "properties": { "name": "Surabaya", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [107.6191, -6.9175] },
+      "properties": { "name": "Bandung", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [98.6722, 3.5952] },
+      "properties": { "name": "Medan", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [115.2126, -8.6705] },
+      "properties": { "name": "Denpasar", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [119.4327, -5.1477] },
+      "properties": { "name": "Makassar", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [104.7754, -2.9761] },
+      "properties": { "name": "Palembang", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [110.4203, -6.9932] },
+      "properties": { "name": "Semarang", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [110.3688, -7.7971] },
+      "properties": { "name": "Yogyakarta", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [107.6151, -6.9139] },
+      "properties": { "name": "Bekasi", "country": "Indonesia" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [120.9842, 14.5995] },
+      "properties": { "name": "Manila", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [121.0437, 14.676] },
+      "properties": { "name": "Quezon City", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [125.4553, 7.1907] },
+      "properties": { "name": "Davao", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [123.8854, 10.3157] },
+      "properties": { "name": "Cebu", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [121.0727, 14.3496] },
+      "properties": { "name": "Caloocan", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [103.8198, 1.3521] },
+      "properties": { "name": "Singapore", "country": "Singapore" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [114.948, 4.94] },
+      "properties": { "name": "Bandar Seri Begawan", "country": "Brunei" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [125.5789, -8.5569] },
+      "properties": { "name": "Dili", "country": "Timor-Leste" }
+    }
+  ]
+}

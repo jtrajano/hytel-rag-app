@@ -17,7 +17,7 @@ export interface RegionAQIData {
   id: string
   /** Human-readable display name */
   name: string
-  /** US AQI value */
+  /** AQI value */
   aqi: number
   /** AQI category label (e.g. "Good", "Moderate") */
   category: string

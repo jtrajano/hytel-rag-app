@@ -123,7 +123,7 @@ Open-Meteo nearest hourly air-quality sample for ${input.city}:
 - NO2: ${no2 ?? 'n/a'} µg/m³
 - O3: ${o3 ?? 'n/a'} µg/m³
 - CO: ${co ?? 'n/a'} µg/m³
-- Estimated US AQI from PM2.5: ${aqi ?? 'n/a'}${category ? ` (${category})` : ''}`
+- Estimated AQI from PM2.5: ${aqi ?? 'n/a'}${category ? ` (${category})` : ''}`
           }
         } catch {
           // Keep briefing resilient if Open-Meteo is unavailable.

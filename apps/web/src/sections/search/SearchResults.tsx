@@ -90,7 +90,7 @@ export function SearchResults({ result }: { result: SearchResult }) {
                 {pollution.category}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {isCountry ? 'Avg. US AQI' : 'US AQI'}
+                {isCountry ? 'Avg. AQI' : 'AQI'}
               </span>
             </div>
           </div>
@@ -202,10 +202,6 @@ export function SearchResults({ result }: { result: SearchResult }) {
               <CardTitle className="text-base font-semibold text-foreground">
                 Prevention & Improvement
               </CardTitle>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex-shrink-0" />
-              <span className="text-xs text-muted-foreground">Powered by Vertex AI</span>
             </div>
           </div>
         </CardHeader>
