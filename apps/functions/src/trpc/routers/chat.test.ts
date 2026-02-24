@@ -66,7 +66,7 @@ describe('chatRouter.ask', () => {
   })
 
   // ── RAGService delegation ──────────────────────────────────────────────────
-  it('passes question, city, and country through to RAGService.ask', async () => {
+  it('passes question and city through to RAGService.ask', async () => {
     await caller.chat.ask({
       question: 'How bad is air pollution?',
       city: 'bangkok',
@@ -74,13 +74,13 @@ describe('chatRouter.ask', () => {
     })
 
     expect(mockAsk).toHaveBeenCalledOnce()
-    expect(mockAsk).toHaveBeenCalledWith('How bad is air pollution?', 'bangkok', 'Thailand')
+    expect(mockAsk).toHaveBeenCalledWith('How bad is air pollution?', 'bangkok')
   })
 
-  it('passes undefined for city and country when omitted', async () => {
+  it('passes undefined for city when omitted', async () => {
     await caller.chat.ask({ question: 'What is AQI?' })
 
-    expect(mockAsk).toHaveBeenCalledWith('What is AQI?', undefined, undefined)
+    expect(mockAsk).toHaveBeenCalledWith('What is AQI?', undefined)
   })
 
   // ── Input validation ───────────────────────────────────────────────────────

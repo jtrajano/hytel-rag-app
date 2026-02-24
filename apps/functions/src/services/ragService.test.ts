@@ -11,10 +11,7 @@ const mockGetGenerativeModel = vi.fn(() => ({ generateContent: mockGenerateConte
 
 const mockGetAccessToken = vi.fn()
 
-const mockGetLiveByCity = vi.fn()
-const mockGetGlobalAqiForCity = vi.fn()
-const mockGetAdpcForecastForCountry = vi.fn()
-const mockGetCountryAggregatedData = vi.fn()
+const mockGetAirQualityByLocation = vi.fn()
 
 vi.mock('@google-cloud/firestore', () => ({
   Firestore: vi.fn(() => ({ collection: mockCollection })),
@@ -28,31 +25,17 @@ vi.mock('google-auth-library', () => ({
   GoogleAuth: vi.fn(() => ({ getAccessToken: mockGetAccessToken })),
 }))
 
-vi.mock('./openaqClient.js', () => ({
-  OpenAQClient: vi.fn(() => ({ getLiveByCity: mockGetLiveByCity })),
-}))
-
-vi.mock('./bqClient.js', () => ({
-  BQClient: vi.fn(() => ({
-    getGlobalAqiForCity: mockGetGlobalAqiForCity,
-    getAdpcForecastForCountry: mockGetAdpcForecastForCountry,
-    getCountryAggregatedData: mockGetCountryAggregatedData,
-  })),
+vi.mock('./openMeteoClient.js', () => ({
+  OpenMeteoClient: vi.fn(() => ({ getAirQualityByLocation: mockGetAirQualityByLocation })),
 }))
 
 vi.mock('../config/env.js', () => ({
   env: {
     projectId: 'test-project',
-    location: 'asia-southeast1',
     vertex: {
       embeddingModel: 'text-embedding-004',
       geminiModel: 'gemini-2.0-flash-001',
       location: 'us-central1',
-    },
-    bigquery: {
-      dataset: 'aircare_sea',
-      globalAqiTable: 'global_aqi_reference',
-      adpcRegionsTable: 'adpc_pm25_regions',
     },
     rag: {
       collection: 'rag_chunks',
@@ -99,6 +82,34 @@ const makeGeminiResponse = (text: string) => ({
   response: { candidates: [{ content: { parts: [{ text }] } }] },
 })
 
+/**
+ * Creates an AirQualityWithLocation result with 72 hourly values.
+ * All pollutant values are constant so the prompt content is predictable
+ * regardless of which hourly index findClosestHourlyIndex selects.
+ */
+function makeForecastResult(name = 'Bangkok', country = 'Thailand', pm25 = 20.0) {
+  const times = Array.from({ length: 72 }, (_, i) => {
+    const d = new Date(Date.now() + i * 3_600_000)
+    return d.toISOString().slice(0, 16)
+  })
+  return {
+    location: { id: 1, name, latitude: 13.75, longitude: 100.52, country },
+    forecast: {
+      latitude: 13.75,
+      longitude: 100.52,
+      timezone: 'Asia/Bangkok',
+      hourly: {
+        time: times,
+        pm2_5: Array<number>(72).fill(pm25),
+        pm10: Array<number>(72).fill(pm25 * 1.5),
+        nitrogen_dioxide: Array<number>(72).fill(5.0),
+        ozone: Array<number>(72).fill(60.0),
+        carbon_monoxide: Array<number>(72).fill(200.0),
+      },
+    },
+  }
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('RAGService', () => {
@@ -106,16 +117,22 @@ describe('RAGService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    process.env.OPENAQ_API_KEY = 'test-openaq-key'
 
     mockGetAccessToken.mockResolvedValue('mock-token')
     global.fetch = vi.fn().mockResolvedValue(makeEmbedResponse())
     mockGet.mockResolvedValue({ docs: [] })
-    mockGetLiveByCity.mockResolvedValue(null)
-    mockGetGlobalAqiForCity.mockResolvedValue(null)
-    mockGetAdpcForecastForCountry.mockResolvedValue(null)
-    mockGetCountryAggregatedData.mockResolvedValue(null)
-    mockGenerateContent.mockResolvedValue(makeGeminiResponse('Here is your air quality answer.'))
+    mockGetAirQualityByLocation.mockResolvedValue(null)
+
+    // Default Gemini behaviour:
+    //   - location extraction calls (contain the extraction prompt prefix) → 'none'
+    //   - all other calls (final answer generation) → stock answer
+    mockGenerateContent.mockImplementation((prompt: unknown) => {
+      const text = typeof prompt === 'string' ? prompt : ''
+      if (text.startsWith('Extract the city or country name')) {
+        return Promise.resolve(makeGeminiResponse('none'))
+      }
+      return Promise.resolve(makeGeminiResponse('Here is your air quality answer.'))
+    })
 
     service = new RAGService('test-project')
   })
@@ -129,8 +146,6 @@ describe('RAGService', () => {
       expect(result.answer).toBe('Here is your air quality answer.')
       expect(result.sources).toEqual([])
       expect(result.liveAqi).toBeUndefined()
-      expect(result.globalAqi).toBeUndefined()
-      expect(result.adpc).toBeUndefined()
     })
 
     it('maps retrieved chunks to sources', async () => {
@@ -164,12 +179,10 @@ describe('RAGService', () => {
       expect(result.sources.map(s => s.url)).toEqual(['https://who.int', 'https://epa.gov'])
     })
 
-    it('skips live data lookups when no city is provided', async () => {
+    it('skips Open-Meteo when no city is provided and no location is detected', async () => {
       await service.ask('What is PM2.5?')
 
-      expect(mockGetLiveByCity).not.toHaveBeenCalled()
-      expect(mockGetGlobalAqiForCity).not.toHaveBeenCalled()
-      expect(mockGetAdpcForecastForCountry).not.toHaveBeenCalled()
+      expect(mockGetAirQualityByLocation).not.toHaveBeenCalled()
     })
   })
 
@@ -177,7 +190,7 @@ describe('RAGService', () => {
 
   describe('ask() — embedding', () => {
     it('calls the embedding API with the user question', async () => {
-      await service.ask('What causes PM2.5?')
+      await service.ask('What causes PM2.5?', 'Bangkok')
 
       expect(global.fetch).toHaveBeenCalledOnce()
       const [, opts] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
@@ -191,14 +204,16 @@ describe('RAGService', () => {
     it('throws when the embedding API returns a non-2xx status', async () => {
       global.fetch = vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }))
 
-      await expect(service.ask('What is PM2.5?')).rejects.toThrow('Embedding API error (401)')
+      await expect(service.ask('What is PM2.5?', 'Bangkok')).rejects.toThrow(
+        'Embedding API error (401)'
+      )
     })
 
     it('passes the retrieved vector to Firestore findNearest', async () => {
       const customVector = Array<number>(768).fill(0.42)
       global.fetch = vi.fn().mockResolvedValue(makeEmbedResponse(customVector))
 
-      await service.ask('Any question')
+      await service.ask('Any question', 'Bangkok')
 
       expect(mockFindNearest).toHaveBeenCalledWith(
         expect.objectContaining({ queryVector: customVector })
@@ -209,19 +224,27 @@ describe('RAGService', () => {
   // ── Gemini generation ──────────────────────────────────────────────────────
 
   describe('ask() — Gemini', () => {
-    it('returns fallback text when Gemini returns no candidates', async () => {
-      mockGenerateContent.mockResolvedValue({ response: { candidates: [] } })
+    it('returns fallback text when Gemini returns no candidates for the answer', async () => {
+      mockGenerateContent.mockImplementation((prompt: unknown) => {
+        const text = typeof prompt === 'string' ? prompt : ''
+        if (text.startsWith('Extract the city or country name')) {
+          return Promise.resolve(makeGeminiResponse('none'))
+        }
+        return Promise.resolve({ response: { candidates: [] } })
+      })
 
-      const result = await service.ask('What is AQI?')
+      const result = await service.ask('What is AQI?', 'Bangkok')
 
       expect(result.answer).toBe('Sorry, I could not generate an answer. Please try again.')
     })
 
     it('uses no-data fallback prompt when no chunks or live data exist', async () => {
-      await service.ask('Tell me about air quality in SEA')
+      // city provided, Open-Meteo returns null → no forecastSection
+      await service.ask('Tell me about air quality in SEA', 'UnknownCity')
 
-      const [prompt] = mockGenerateContent.mock.calls[0] as [string]
-      expect(prompt).toContain('No specific data found')
+      const calls = mockGenerateContent.mock.calls
+      const lastPrompt = (calls[calls.length - 1] as [string])[0]
+      expect(lastPrompt).toContain('No specific data found')
     })
 
     it('includes RAG chunks in the Gemini prompt', async () => {
@@ -229,217 +252,115 @@ describe('RAGService', () => {
         docs: [makeChunkDoc({ content: 'PM2.5 causes respiratory issues.' })],
       })
 
-      await service.ask('Health effects?')
+      await service.ask('Health effects?', 'Bangkok')
 
-      const [prompt] = mockGenerateContent.mock.calls[0] as [string]
-      expect(prompt).toContain('Relevant knowledge:')
-      expect(prompt).toContain('PM2.5 causes respiratory issues.')
+      const calls = mockGenerateContent.mock.calls
+      const lastPrompt = (calls[calls.length - 1] as [string])[0]
+      expect(lastPrompt).toContain('Relevant knowledge:')
+      expect(lastPrompt).toContain('PM2.5 causes respiratory issues.')
     })
   })
 
-  // ── Live OpenAQ data ───────────────────────────────────────────────────────
+  // ── Open-Meteo AQI data ────────────────────────────────────────────────────
 
-  describe('ask() — live AQI', () => {
-    it('fetches live AQI when a city is provided and OpenAQ is configured', async () => {
-      const liveAqi = {
-        city: 'Bangkok',
-        country: 'TH',
-        timestamp: '2026-02-22T06:00:00Z',
-        pm25: 45.2,
-        pm10: 60.1,
-        no2: 12.3,
-        o3: null,
-      }
-      mockGetLiveByCity.mockResolvedValue(liveAqi)
+  describe('ask() — Open-Meteo AQI', () => {
+    it('calls getAirQualityByLocation with the provided city', async () => {
+      mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult())
 
-      const result = await service.ask('How is the air in Bangkok?', 'Bangkok')
+      await service.ask('How is the air in Bangkok?', 'Bangkok')
 
-      expect(mockGetLiveByCity).toHaveBeenCalledWith('Bangkok')
-      expect(result.liveAqi).toEqual(liveAqi)
+      expect(mockGetAirQualityByLocation).toHaveBeenCalledWith('Bangkok')
     })
 
-    it('skips live AQI when OPENAQ_API_KEY is not set', async () => {
-      delete process.env.OPENAQ_API_KEY
-      const noKeyService = new RAGService('test-project')
+    it('returns liveAqi with resolved location and forecast', async () => {
+      mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult('Bangkok', 'Thailand', 45.0))
 
-      await noKeyService.ask('Bangkok air?', 'Bangkok')
+      const result = await service.ask('Bangkok air?', 'Bangkok')
 
-      expect(mockGetLiveByCity).not.toHaveBeenCalled()
+      expect(result.liveAqi).toBeDefined()
+      expect(result.liveAqi?.location.name).toBe('Bangkok')
+      expect(result.liveAqi?.location.country).toBe('Thailand')
     })
 
-    it('includes live OpenAQ section in the Gemini prompt', async () => {
-      mockGetLiveByCity.mockResolvedValue({
-        city: 'Singapore',
-        country: 'SG',
-        timestamp: '2026-02-22T06:00:00Z',
-        pm25: 12.0,
-        pm10: null,
-        no2: null,
-        o3: null,
-      })
+    it('returns liveAqi as undefined when Open-Meteo finds no match', async () => {
+      mockGetAirQualityByLocation.mockResolvedValue(null)
 
-      await service.ask('Singapore air?', 'Singapore')
+      const result = await service.ask('Air quality?', 'UnknownCity')
 
-      const [prompt] = mockGenerateContent.mock.calls[0] as [string]
-      expect(prompt).toContain('Live OpenAQ reading for Singapore')
-      expect(prompt).toContain('PM2.5: 12')
-    })
-  })
-
-  // ── BigQuery global AQI ────────────────────────────────────────────────────
-
-  describe('ask() — global AQI', () => {
-    it('includes global AQI data when the city is found in BigQuery', async () => {
-      const globalAqi = {
-        city: 'Manila',
-        country: 'Philippines',
-        timestamp: '2026-02-22T00:00:00Z',
-        pm25: 30.2,
-        pm10: 50.0,
-        no2: 18.0,
-        so2: 5.0,
-        co: 0.8,
-        ozone: 40.0,
-        aerosolOpticalDepth: 0.3,
-        aqiClass: 'Moderate',
-      }
-      mockGetGlobalAqiForCity.mockResolvedValue(globalAqi)
-
-      const result = await service.ask('Manila air quality?', 'Manila')
-
-      expect(result.globalAqi).toEqual(globalAqi)
+      expect(result.liveAqi).toBeUndefined()
     })
 
-    it('falls back to country aggregated data when city is not found in BigQuery', async () => {
-      const countryData = {
-        city: 'Vietnam (National Avg)',
-        country: 'Vietnam',
-        timestamp: '2026-02-22T00:00:00Z',
-        pm25: 22.5,
-        pm10: 38.0,
-        no2: 10.0,
-        so2: 3.0,
-        co: 0.5,
-        ozone: 35.0,
-        aerosolOpticalDepth: 0.2,
-        aqiClass: null,
-      }
-      mockGetCountryAggregatedData.mockResolvedValue(countryData)
+    it('includes current conditions with AQI in the Gemini prompt', async () => {
+      mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult('Bangkok', 'Thailand', 45.0))
 
-      const result = await service.ask('Vietnam air?', 'Vietnam')
+      await service.ask('Bangkok air?', 'Bangkok')
 
-      expect(mockGetCountryAggregatedData).toHaveBeenCalledWith('Vietnam')
-      expect(result.globalAqi).toEqual(countryData)
+      const calls = mockGenerateContent.mock.calls
+      const lastPrompt = (calls[calls.length - 1] as [string])[0]
+      expect(lastPrompt).toContain('Current air quality for Bangkok, Thailand')
+      expect(lastPrompt).toContain('PM2.5: 45')
+      expect(lastPrompt).toContain('Estimated AQI:')
     })
 
-    it('does not call getCountryAggregatedData when city is found in BigQuery', async () => {
-      mockGetGlobalAqiForCity.mockResolvedValue({
-        city: 'Jakarta',
-        country: 'Indonesia',
-        timestamp: '2026-02-22T00:00:00Z',
-        pm25: 55.0,
-        pm10: null,
-        no2: null,
-        so2: null,
-        co: null,
-        ozone: null,
-        aerosolOpticalDepth: null,
-        aqiClass: 'Unhealthy',
-      })
+    it('includes 3-day peak forecast section in the Gemini prompt', async () => {
+      mockGetAirQualityByLocation.mockResolvedValue(
+        makeForecastResult('Manila', 'Philippines', 30.0)
+      )
 
-      await service.ask('Jakarta air?', 'Jakarta')
+      await service.ask('Manila air?', 'Manila')
 
-      expect(mockGetCountryAggregatedData).not.toHaveBeenCalled()
+      const calls = mockGenerateContent.mock.calls
+      const lastPrompt = (calls[calls.length - 1] as [string])[0]
+      expect(lastPrompt).toContain('3-day PM2.5 peak forecast')
+      expect(lastPrompt).toContain('Today:')
+      expect(lastPrompt).toContain('Tomorrow:')
     })
   })
 
-  // ── ADPC country resolution ────────────────────────────────────────────────
+  // ── Location extraction ────────────────────────────────────────────────────
 
-  describe('ask() — ADPC resolution', () => {
-    it('resolves country from city for ADPC lookup (Bangkok → Thailand)', async () => {
-      const adpc = {
-        country: 'Thailand',
-        initDate: '2026-02-22',
-        avgPm25: 38.5,
-        maxPm25: 72.0,
-        nearestForecast: '2026-02-22T00:00:00Z',
-      }
-      mockGetAdpcForecastForCountry.mockResolvedValue(adpc)
-
-      const result = await service.ask('Air quality in Bangkok?', 'Bangkok')
-
-      expect(mockGetAdpcForecastForCountry).toHaveBeenCalledWith('Thailand')
-      expect(result.adpc).toEqual(adpc)
-    })
-
-    it('uses the explicit country parameter over city-based lookup', async () => {
-      const adpc = {
-        country: 'Malaysia',
-        initDate: '2026-02-22',
-        avgPm25: 20.1,
-        maxPm25: 35.0,
-        nearestForecast: '2026-02-22T00:00:00Z',
-      }
-      mockGetAdpcForecastForCountry.mockResolvedValue(adpc)
-
-      // city=Bangkok would normally resolve to Thailand, but country='Malaysia' overrides it
-      const result = await service.ask('Air in KL?', 'Bangkok', 'Malaysia')
-
-      expect(mockGetAdpcForecastForCountry).toHaveBeenCalledWith('Malaysia')
-      expect(result.adpc).toEqual(adpc)
-    })
-
-    it('skips ADPC when city has no mapping in CITY_COUNTRY and country fallback returns null', async () => {
-      await service.ask('Air quality?', 'UnknownCity')
-
-      expect(mockGetAdpcForecastForCountry).not.toHaveBeenCalled()
-    })
-
-    it('fetches ADPC for the country resolved via country aggregated fallback', async () => {
-      const countryData = {
-        city: 'Vietnam (National Avg)',
-        country: 'Vietnam',
-        timestamp: '2026-02-22T00:00:00Z',
-        pm25: 22.5,
-        pm10: null,
-        no2: null,
-        so2: null,
-        co: null,
-        ozone: null,
-        aerosolOpticalDepth: null,
-        aqiClass: null,
-      }
-      const adpc = {
-        country: 'Vietnam',
-        initDate: '2026-02-22',
-        avgPm25: 25.0,
-        maxPm25: 45.0,
-        nearestForecast: '2026-02-22T00:00:00Z',
-      }
-      mockGetGlobalAqiForCity.mockResolvedValue(null)
-      mockGetCountryAggregatedData.mockResolvedValue(countryData)
-      mockGetAdpcForecastForCountry.mockResolvedValue(adpc)
-
-      const result = await service.ask('Vietnam forecast?', 'Vietnam')
-
-      expect(mockGetAdpcForecastForCountry).toHaveBeenCalledWith('Vietnam')
-      expect(result.adpc).toEqual(adpc)
-    })
-
-    it('includes ADPC section in the Gemini prompt when forecast is available', async () => {
-      mockGetAdpcForecastForCountry.mockResolvedValue({
-        country: 'Thailand',
-        initDate: '2026-02-22',
-        avgPm25: 38.5,
-        maxPm25: 72.0,
-        nearestForecast: '2026-02-22T00:00:00Z',
+  describe('ask() — location extraction', () => {
+    it('extracts location from the question when no city is passed', async () => {
+      mockGenerateContent.mockImplementation((prompt: unknown) => {
+        const text = typeof prompt === 'string' ? prompt : ''
+        if (text.startsWith('Extract the city or country name')) {
+          return Promise.resolve(makeGeminiResponse('Bangkok'))
+        }
+        return Promise.resolve(makeGeminiResponse('Here is your air quality answer.'))
       })
+      mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult())
 
-      await service.ask('Bangkok forecast?', 'Bangkok')
+      await service.ask('How is the air in Bangkok today?')
 
-      const [prompt] = mockGenerateContent.mock.calls[0] as [string]
-      expect(prompt).toContain('ADPC Satellite Forecast for Thailand')
-      expect(prompt).toContain('Average PM2.5: 38.5')
+      expect(mockGetAirQualityByLocation).toHaveBeenCalledWith('Bangkok')
+    })
+
+    it('skips Open-Meteo when Gemini returns "none" for location', async () => {
+      // default beforeEach mock already returns 'none' for extraction
+      await service.ask('What is PM2.5?')
+
+      expect(mockGetAirQualityByLocation).not.toHaveBeenCalled()
+    })
+
+    it('uses explicit city and skips extraction entirely', async () => {
+      mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult())
+
+      await service.ask('Air quality in Bangkok?', 'Bangkok')
+
+      // With city provided, generateContent is called once (final answer only)
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1)
+      expect(mockGetAirQualityByLocation).toHaveBeenCalledWith('Bangkok')
+    })
+
+    it('works for a country name as the explicit city parameter', async () => {
+      mockGetAirQualityByLocation.mockResolvedValue(
+        makeForecastResult('Thailand', 'Thailand', 18.0)
+      )
+
+      const result = await service.ask('Air quality in Thailand?', 'Thailand')
+
+      expect(mockGetAirQualityByLocation).toHaveBeenCalledWith('Thailand')
+      expect(result.liveAqi?.location.name).toBe('Thailand')
     })
   })
 })
