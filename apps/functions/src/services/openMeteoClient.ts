@@ -149,4 +149,40 @@ export class OpenMeteoClient {
     const forecast = AirQualityResponseSchema.parse(data)
     return { location, forecast }
   }
+
+  /**
+   * Fetches current air quality for multiple locations in a single batch request.
+   */
+  async getAirQualityBatch(
+    coords: { latitude: number; longitude: number }[]
+  ): Promise<AirQualityResponse[]> {
+    if (coords.length === 0) return []
+
+    const url = new URL(`${this.airQualityBaseUrl}/air-quality`)
+    url.searchParams.set('latitude', coords.map(c => c.latitude).join(','))
+    url.searchParams.set('longitude', coords.map(c => c.longitude).join(','))
+    url.searchParams.set('hourly', 'pm2_5')
+    url.searchParams.set('timezone', 'auto')
+    url.searchParams.set('forecast_days', '1')
+
+    const response = await this.fetchImpl(url.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    })
+
+    if (!response.ok) {
+      throw new Error(
+        `Air Quality Batch API failed with status ${response.status}: ${await response.text()}`
+      )
+    }
+
+    const data = await response.json()
+
+    // Open-Meteo returns a single object if one coord is passed,
+    // or an array of objects if multiple coords are passed.
+    if (Array.isArray(data)) {
+      return z.array(AirQualityResponseSchema).parse(data)
+    }
+    return [AirQualityResponseSchema.parse(data)]
+  }
 }

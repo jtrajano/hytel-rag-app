@@ -15,6 +15,7 @@ import { VertexAI } from '@google-cloud/vertexai'
 import { OpenAQClient } from './openaqClient.js'
 import { env } from '../config/env.js'
 import { BQClient } from './bqClient.js'
+import { OpenMeteoClient } from './openMeteoClient.js'
 import { pm25ToAqi, aqiToCategory, AqiCategory } from '../utils/aqiUtils.js'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -321,6 +322,59 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
         pollution: { aqi, category, pm25, pm10, o3, no2, updatedAt: openaqRow.timestamp },
         ...aiContent,
       }
+    }
+
+    // Step 2.5: Open-Meteo — last resort for global city level data
+    try {
+      const om = new OpenMeteoClient()
+      const omResult = await om.getAirQualityByLocation(searchQuery)
+      if (omResult) {
+        const { location, forecast } = omResult
+        const pm25Values = forecast.hourly?.pm2_5 ?? []
+        const pm10Values = forecast.hourly?.pm10 ?? []
+        const no2Values = forecast.hourly?.nitrogen_dioxide ?? []
+        const o3Values = forecast.hourly?.ozone ?? []
+
+        // Find first non-null values
+        const pm25 = pm25Values.find((v: number | null) => v !== null) ?? 0
+        const pm10 = pm10Values.find((v: number | null) => v !== null) ?? 0
+        const no2 = no2Values.find((v: number | null) => v !== null) ?? 0
+        const o3 = o3Values.find((v: number | null) => v !== null) ?? 0
+
+        const aqi = pm25ToAqi(pm25)
+        const category = aqiToCategory(aqi)
+        const flagEmoji = COUNTRY_FLAG[(location.country ?? '').toLowerCase()] ?? '🌍'
+
+        const aiContent = await this.generateContent(
+          location.country ? `${location.name}, ${location.country}` : location.name,
+          'city',
+          aqi,
+          category,
+          pm25,
+          pm10,
+          no2
+        )
+
+        return {
+          type: 'city',
+          id: location.name.toLowerCase().replace(/\s+/g, '-'),
+          name: location.name,
+          country: location.country ?? '',
+          flagEmoji,
+          pollution: {
+            aqi,
+            category,
+            pm25,
+            pm10,
+            o3,
+            no2,
+            updatedAt: forecast.hourly?.time[0] ?? new Date().toISOString(),
+          },
+          ...aiContent,
+        }
+      }
+    } catch {
+      // Proceed to country fallback if Open-Meteo fails
     }
 
     // Step 3: Fall back to country aggregate — run both tables in parallel

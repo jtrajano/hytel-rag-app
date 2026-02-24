@@ -57,24 +57,18 @@ export function AQIMap({ level, countryData, cityData = [] }: AQIMapProps) {
       />
 
       {/* Country polygon layer — active by default */}
-      {level === 'country' && <CountryLayer aqiData={countryData} />}
+      {level === 'country' && <CountryLayer aqiData={countryData} pane="country-pane" />}
 
-      {/*
-       * City marker layer — scaffold only.
-       * TODO: Activate when city-level data is available from API.
-       * Pass cityData from useCityAQI hook and remove the empty array fallback.
-       */}
-      {level === 'city' && <CityLayer cities={cityData} />}
+      {/* City marker layer */}
+      {level === 'city' && <CityLayer cities={cityData} pane="marker-pane" />}
 
       {/* Legend — always visible, level-agnostic */}
       <AQILegend />
 
-      <LabelPane />
+      <CustomPanes />
       {/* 
         Labels Overlay (Text/Names) 
-        We use a custom 'labels-pane' (z-index 650) with 'pointer-events: none'
-        to ensure city and country names are always visible and do NOT
-        block hover/click interactions on polygons.
+        Positioned between countries and markers for clear visibility
       */}
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
@@ -88,18 +82,26 @@ export function AQIMap({ level, countryData, cityData = [] }: AQIMapProps) {
 }
 
 /**
- * Creates a custom Leaflet pane for labels.
- * We disable pointer-events on this pane so that labels don't intercept
- * hover or click events meant for the actual data layers (polygons/markers).
+ * Creates custom Leaflet panes for better layer control.
  */
-function LabelPane() {
+function CustomPanes() {
   const map = useMap()
   useEffect(() => {
-    // Only create if it doesn't exist
+    // 1. Country Polygons (Bottom)
+    if (!map.getPane('country-pane')) {
+      const pane = map.createPane('country-pane')
+      pane.style.zIndex = '400'
+    }
+    // 2. Labels (Middle) - Pointer events disabled so they don't block clicks
     if (!map.getPane('labels-pane')) {
       const pane = map.createPane('labels-pane')
-      pane.style.zIndex = '625' // Above polygons (400), below tooltips (650)
+      pane.style.zIndex = '450'
       pane.style.pointerEvents = 'none'
+    }
+    // 3. City Markers (Top)
+    if (!map.getPane('marker-pane')) {
+      const pane = map.createPane('marker-pane')
+      pane.style.zIndex = '500'
     }
   }, [map])
   return null

@@ -181,3 +181,18 @@ input[type='number'] {
     fill-opacity 0.2s ease,
     stroke 0.2s ease;
 }
+
+/* Leaflet Custom Tooltip Reset */
+.leaflet-tooltip.custom-tooltip {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.leaflet-tooltip-top.custom-tooltip:before,
+.leaflet-tooltip-bottom.custom-tooltip:before,
+.leaflet-tooltip-left.custom-tooltip:before,
+.leaflet-tooltip-right.custom-tooltip:before {
+  display: none !important;
+}

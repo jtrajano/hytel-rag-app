@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { router, protectedProcedure } from '../trpc.js'
 import { SearchService } from '../../services/searchService.js'
+import { OpenMeteoClient } from '../../services/openMeteoClient.js'
+import { pm25ToAqi, aqiToCategory } from '../../utils/aqiUtils.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 
@@ -16,6 +18,13 @@ const AqiCategorySchema = z.enum([
 const GuidelineItemSchema = z.object({
   id: z.string(),
   text: z.string(),
+})
+
+const RegionAQIDataSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  aqi: z.number(),
+  category: AqiCategorySchema,
 })
 
 const CitySearchResultSchema = z
@@ -47,5 +56,37 @@ export const searchRouter = router({
     .query(async ({ input }) => {
       const svc = new SearchService(PROJECT_ID)
       return await svc.lookupCity(input.query)
+    }),
+
+  batchCities: protectedProcedure
+    .input(
+      z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          latitude: z.number(),
+          longitude: z.number(),
+        })
+      )
+    )
+    .output(z.array(RegionAQIDataSchema))
+    .query(async ({ input }) => {
+      if (input.length === 0) return []
+      const client = new OpenMeteoClient()
+      const results = await client.getAirQualityBatch(input)
+
+      return results.map((res, i) => {
+        const pm25Values = res.hourly?.pm2_5 ?? []
+        const currentPm25 = pm25Values.find(v => v !== null) ?? 0
+        const aqi = pm25ToAqi(currentPm25)
+        const category = aqiToCategory(aqi)
+
+        return {
+          id: input[i].id,
+          name: input[i].name,
+          aqi,
+          category,
+        }
+      })
     }),
 })

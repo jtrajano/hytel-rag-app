@@ -2,21 +2,19 @@ import { useState } from 'react'
 import { Loader2, Map, Building2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useCountryAQI } from '@/hooks/useCountryAQI'
+import { useCityAQI } from '@/hooks/useCityAQI'
 import { AQIMap } from '@/components/map/AQIMap'
 import type { MapLevel } from '@/utils/mapTypes'
 import { cn } from '@/lib/utils'
 
 /**
  * Level tabs for the map view switcher.
- * CityTab is disabled until city-level data is available from the API.
  */
 const LEVEL_TABS: { label: string; level: MapLevel; disabled?: boolean; hint?: string }[] = [
   { label: 'Country', level: 'country' },
   {
     label: 'City',
     level: 'city',
-    disabled: true,
-    hint: 'Coming soon — city-level data in progress',
   },
 ]
 
@@ -25,13 +23,15 @@ const LEVEL_TABS: { label: string; level: MapLevel; disabled?: boolean; hint?: s
  *
  * Orchestrates data fetching and map rendering. Keeps AQIMap presentation-only
  * by owning all data concerns here.
- *
- * Future: when city data is ready, add `useCityAQI` here, wire it into
- * AQIMap's `cityData` prop, and enable the city tab.
  */
 export function PollutionMapSection() {
   const [level, setLevel] = useState<MapLevel>('country')
-  const { data: countryData, isLoading, isError } = useCountryAQI()
+  const { data: countryData, isLoading: countryLoading, isError: countryError } = useCountryAQI()
+
+  const { data: cityData, isLoading: cityLoading, isError: cityError } = useCityAQI()
+
+  const isLoading = level === 'country' ? countryLoading : cityLoading
+  const isError = level === 'country' ? countryError : cityError
 
   return (
     <div className="space-y-4">
@@ -59,11 +59,6 @@ export function PollutionMapSection() {
               <Building2 className="w-3.5 h-3.5" />
             )}
             {tab.label}
-            {tab.disabled && (
-              <span className="text-[9px] bg-muted text-muted-foreground border border-border rounded px-1 py-0.5 ml-0.5 font-normal">
-                Soon
-              </span>
-            )}
           </button>
         ))}
       </div>
@@ -89,11 +84,11 @@ export function PollutionMapSection() {
         className="relative rounded-xl overflow-hidden border border-border"
         style={{ height: '520px' }}
       >
-        <AQIMap level={level} countryData={countryData} />
+        <AQIMap level={level} countryData={countryData} cityData={cityData} />
 
         {/* Subtle data source attribution */}
         <div className="absolute bottom-2 left-2 z-[400] text-[10px] text-white/40 pointer-events-none select-none">
-          AQI data: OpenAQ · Boundaries: Natural Earth
+          AQI data: OpenAQ, Open-Meteo · Boundaries: Natural Earth
         </div>
       </div>
     </div>

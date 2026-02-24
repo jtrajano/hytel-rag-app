@@ -22,6 +22,8 @@ interface CountryProperties {
 interface CountryLayerProps {
   /** AQI data keyed by lowercase country name */
   aqiData: Map<string, RegionAQIData>
+  /** Leaflet pane to render in */
+  pane?: string
 }
 
 /**
@@ -38,7 +40,7 @@ interface CountryLayerProps {
  *   Coupled only to `RegionAQIData` and a URL. Adapting to another region
  *   only requires swapping the GeoJSON URL.
  */
-export function CountryLayer({ aqiData }: CountryLayerProps) {
+export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
   const map = useMap()
   const geojsonRef = useRef<L.GeoJSON | null>(null)
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null)
@@ -131,15 +133,29 @@ export function CountryLayer({ aqiData }: CountryLayerProps) {
     // ---------- Tooltip ----------
     layer.bindTooltip(
       `<div style="
-        padding:2px 4px;
-        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-        min-width:130px;pointer-events:none;
+        padding:6px 10px;
+        background:#0f172a;
+        border:1px solid rgba(255,255,255,0.1);
+        border-radius:8px;
+        box-shadow:0 10px 15px -3px rgba(0,0,0,0.4);
+        font-family:sans-serif;
+        min-width:140px;
+        pointer-events:none;
       ">
-        <div style="font-weight:700;font-size:13px;color:#f1f5f9;margin-bottom:3px;">${region.name}</div>
-        <div style="font-size:22px;font-weight:900;color:${color};line-height:1;">${region.aqi}</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${region.category}</div>
+        <div style="font-weight:700;font-size:12px;color:#94a3b8;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;">${region.name}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:24px;font-weight:900;color:${color};line-height:1;">${region.aqi}</div>
+          <div style="font-size:11px;font-weight:600;color:#f1f5f9;background:${color}33;padding:2px 6px;border-radius:4px;">${region.category}</div>
+        </div>
       </div>`,
-      { permanent: false, sticky: true, opacity: 1, direction: 'top', offset: [0, -6] }
+      {
+        permanent: false,
+        sticky: true,
+        opacity: 1,
+        direction: 'top',
+        offset: [0, -6],
+        className: 'custom-tooltip',
+      }
     )
 
     // ---------- Popup ----------
@@ -195,6 +211,7 @@ export function CountryLayer({ aqiData }: CountryLayerProps) {
       key={`geo-countries-${aqiData.size}`}
       ref={geojsonRef}
       data={geoData}
+      pane={pane}
       style={feature => featureStyle(feature as Feature<Geometry, CountryProperties>)}
       onEachFeature={onEachFeature}
     />
