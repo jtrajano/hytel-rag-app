@@ -19,7 +19,7 @@ function getBearerToken(headerValue: string | undefined): string | null {
 }
 
 async function createContext(opts: { req: express.Request }): Promise<TrpcContext> {
-  const authz = opts.req.header('authorization')
+  const authz = opts.req.header('authorization') ?? opts.req.header('x-authorization')
   const token = getBearerToken(authz ?? undefined)
   if (!token) {
     console.warn('Auth missing/invalid', {

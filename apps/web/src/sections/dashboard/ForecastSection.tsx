@@ -1,39 +1,30 @@
-import { Cloud, CloudRain, Sun } from 'lucide-react'
+import { Cloud, CloudRain, Sun, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ForecastDay } from '@/interface'
+import { trpc } from '@/lib/trpc'
+import { getAqiBadgeClass, getAqiTextColor } from '@/sections/search/searchUtils'
+import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
 
-const FORECAST_DAYS: ForecastDay[] = [
-  {
-    label: 'Today',
-    aqi: 158,
-    category: 'Unhealthy',
-    aqiColor: 'text-orange-600',
-    badgeClass: 'bg-orange-500 hover:bg-orange-500 text-white border-0',
-    WeatherIcon: Cloud,
-    iconColor: 'text-slate-400',
-  },
-  {
-    label: 'Tomorrow',
-    aqi: 112,
-    category: 'Unhealthy SG',
-    aqiColor: 'text-orange-400',
-    badgeClass: 'bg-orange-300 hover:bg-orange-300 text-orange-900 border-0',
-    WeatherIcon: CloudRain,
-    iconColor: 'text-blue-400',
-  },
-  {
-    label: 'Day 3',
-    aqi: 64,
-    category: 'Moderate',
-    aqiColor: 'text-yellow-600',
-    badgeClass: 'bg-yellow-300 hover:bg-yellow-300 text-yellow-900 border-0',
-    WeatherIcon: Sun,
-    iconColor: 'text-amber-400',
-  },
-]
+interface ForecastSectionProps {
+  homeCity?: string | null
+}
 
-const ForecastSection = () => {
+const ForecastSection = ({ homeCity }: ForecastSectionProps) => {
+  const city = homeCity ?? 'Manila' // Default to Manila
+  const { user, loading } = useAuth()
+  const { data, isLoading, isError } = trpc.forecast.byCity.useQuery(
+    { city },
+    {
+      enabled: !loading && !!user && !!city,
+      staleTime: 60 * 60 * 1000, // 1 hour
+      gcTime: 60 * 60 * 1000,
+      refetchInterval: 60 * 60 * 1000,
+    }
+  )
+
+  const forecastDays = data?.days ?? []
+
   return (
     <Card className="border-border shadow-sm">
       <CardHeader className="px-5 pt-5 pb-3">
@@ -49,35 +40,47 @@ const ForecastSection = () => {
       </CardHeader>
 
       <CardContent className="px-5 pb-5">
-        <div className="grid grid-cols-3 gap-3">
-          {FORECAST_DAYS.map(day => {
-            const { WeatherIcon } = day
-            return (
-              <div
-                key={day.label}
-                className="flex flex-col items-center gap-2 bg-muted/40 rounded-xl p-3 text-center"
-              >
-                {/* Day Label */}
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  {day.label}
-                </span>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : isError || !forecastDays.length ? (
+          <div className="text-center py-6 text-sm text-muted-foreground">
+            Unable to load forecast data.
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            {forecastDays.map((day, idx) => {
+              // Select an icon cycle based on the index to provide some visual variety
+              const WeatherIcon = idx === 0 ? Cloud : idx === 1 ? CloudRain : Sun
+              const iconColor =
+                idx === 0 ? 'text-slate-400' : idx === 1 ? 'text-blue-400' : 'text-amber-400'
+              const aqiTextColor = getAqiTextColor(day.aqi)
+              const badgeClass = getAqiBadgeClass(day.aqi)
 
-                {/* Weather Icon */}
-                <WeatherIcon className={`w-6 h-6 ${day.iconColor}`} />
+              return (
+                <div
+                  key={day.label}
+                  className="flex flex-col items-center gap-2 bg-muted/40 rounded-xl p-3 text-center"
+                >
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {day.label}
+                  </span>
 
-                {/* AQI Number */}
-                <span className={`text-2xl font-black leading-none ${day.aqiColor}`}>
-                  {day.aqi}
-                </span>
+                  <WeatherIcon className={cn('w-6 h-6', iconColor)} />
 
-                {/* Category Badge */}
-                <Badge className={`text-xs px-2 py-0.5 ${day.badgeClass} whitespace-nowrap`}>
-                  {day.category}
-                </Badge>
-              </div>
-            )
-          })}
-        </div>
+                  <span className={cn('text-2xl font-black leading-none', aqiTextColor)}>
+                    {day.aqi}
+                  </span>
+
+                  <Badge className={cn('text-xs px-2 py-0.5 whitespace-nowrap', badgeClass)}>
+                    {day.category}
+                  </Badge>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
