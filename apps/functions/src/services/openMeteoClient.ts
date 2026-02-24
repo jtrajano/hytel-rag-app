@@ -33,6 +33,11 @@ export const AirQualityResponseSchema = z.object({
 export type GeocodingResult = z.infer<typeof GeocodingResultSchema>
 export type AirQualityResponse = z.infer<typeof AirQualityResponseSchema>
 
+export interface AirQualityWithLocation {
+  location: GeocodingResult
+  forecast: AirQualityResponse
+}
+
 // --- Client ---
 
 export interface OpenMeteoClientOptions {
@@ -112,5 +117,36 @@ export class OpenMeteoClient {
 
     const data = await response.json()
     return AirQualityResponseSchema.parse(data)
+  }
+
+  /**
+   * Geocodes a city or country name and returns the resolved location alongside
+   * a 3-day air quality forecast. Accepts any place name — city, region, or country.
+   */
+  async getAirQualityByLocation(cityOrCountry: string): Promise<AirQualityWithLocation | null> {
+    const location = await this.geocodeCity(cityOrCountry)
+    if (!location) return null
+
+    const url = new URL(`${this.airQualityBaseUrl}/air-quality`)
+    url.searchParams.set('latitude', location.latitude.toString())
+    url.searchParams.set('longitude', location.longitude.toString())
+    url.searchParams.set('hourly', 'pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,ozone')
+    url.searchParams.set('timezone', 'auto')
+    url.searchParams.set('forecast_days', '3')
+
+    const response = await this.fetchImpl(url.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    })
+
+    if (!response.ok) {
+      throw new Error(
+        `Air Quality API request failed with status ${response.status}: ${await response.text()}`
+      )
+    }
+
+    const data = await response.json()
+    const forecast = AirQualityResponseSchema.parse(data)
+    return { location, forecast }
   }
 }

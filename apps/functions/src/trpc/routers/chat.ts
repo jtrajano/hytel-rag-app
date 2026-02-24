@@ -8,6 +8,26 @@ import { pm25ToAqi, aqiToCategory } from '../../utils/aqiUtils.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 
+function findClosestHourlyIndex(times: string[], target: Date): number {
+  if (!times.length) return -1
+
+  const targetMs = target.getTime()
+  let bestIndex = -1
+  let bestDelta = Number.POSITIVE_INFINITY
+
+  for (let i = 0; i < times.length; i++) {
+    const ts = Date.parse(times[i])
+    if (Number.isNaN(ts)) continue
+    const delta = Math.abs(ts - targetMs)
+    if (delta < bestDelta) {
+      bestDelta = delta
+      bestIndex = i
+    }
+  }
+
+  return bestIndex
+}
+
 export const chatRouter = router({
   currentAqi: publicProcedure
     .input(
@@ -63,7 +83,7 @@ export const chatRouter = router({
     )
     .mutation(async ({ input }) => {
       const rag = new RAGService(PROJECT_ID)
-      return await rag.ask(input.question, input.city, input.country)
+      return await rag.ask(input.question, input.city)
     }),
   // Query mirror for clients that issue GET requests (e.g., stale cached bundles).
   askBriefing: publicProcedure
@@ -75,7 +95,42 @@ export const chatRouter = router({
       })
     )
     .query(async ({ input }) => {
+      let question = input.question
+
+      if (input.city) {
+        try {
+          const openMeteo = new OpenMeteoClient()
+          const forecast = await openMeteo.get3DayForecast(input.city)
+          const times = forecast?.hourly?.time ?? []
+          const idx = findClosestHourlyIndex(times, new Date())
+
+          if (forecast && idx !== -1) {
+            const pm25 = forecast.hourly?.pm2_5?.[idx] ?? null
+            const pm10 = forecast.hourly?.pm10?.[idx] ?? null
+            const no2 = forecast.hourly?.nitrogen_dioxide?.[idx] ?? null
+            const o3 = forecast.hourly?.ozone?.[idx] ?? null
+            const co = forecast.hourly?.carbon_monoxide?.[idx] ?? null
+            const sampleTime = times[idx]
+            const aqi = pm25 != null ? pm25ToAqi(pm25) : null
+            const category = aqi != null ? aqiToCategory(aqi) : null
+
+            question = `${question}
+
+Open-Meteo nearest hourly air-quality sample for ${input.city}:
+- Time (closest to now): ${sampleTime}
+- PM2.5: ${pm25 ?? 'n/a'} µg/m³
+- PM10: ${pm10 ?? 'n/a'} µg/m³
+- NO2: ${no2 ?? 'n/a'} µg/m³
+- O3: ${o3 ?? 'n/a'} µg/m³
+- CO: ${co ?? 'n/a'} µg/m³
+- Estimated US AQI from PM2.5: ${aqi ?? 'n/a'}${category ? ` (${category})` : ''}`
+          }
+        } catch {
+          // Keep briefing resilient if Open-Meteo is unavailable.
+        }
+      }
+
       const rag = new RAGService(PROJECT_ID)
-      return await rag.ask(input.question, input.city, input.country)
+      return await rag.ask(question, input.city)
     }),
 })

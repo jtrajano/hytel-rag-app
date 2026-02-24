@@ -4,17 +4,16 @@
  * Flow:
  *   1. Embed the user question via Vertex AI text-embedding-004 (REST)
  *   2. Retrieve relevant chunks from Firestore rag_chunks via findNearest (cosine)
- *   3. Fetch multi-pollutant reading from BigQuery global_aqi_reference (if a city is supplied)
- *   4. Fetch ADPC satellite forecast from BigQuery adpc_pm25_regions (if a country is known)
- *   6. Build a grounded prompt and generate an answer with Gemini
+ *   3. Fetch current & 3-day air quality forecast from Open-Meteo (if a city is supplied)
+ *   4. Build a grounded prompt and generate an answer with Gemini
  */
 
 import { Firestore } from '@google-cloud/firestore'
 import { VertexAI } from '@google-cloud/vertexai'
 import { GoogleAuth } from 'google-auth-library'
-import { OpenAQClient } from './openaqClient.js'
-import type { OpenAQLiveCityReading } from './openaqClient.js'
-import { AdpcForecast, BQClient, GlobalAqiReading } from './bqClient.js'
+import { OpenMeteoClient } from './openMeteoClient.js'
+import type { AirQualityWithLocation } from './openMeteoClient.js'
+import { pm25ToAqi, aqiToCategory } from '../utils/aqiUtils.js'
 import { env } from '../config/env.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -24,14 +23,10 @@ export interface RagSource {
   url: string
 }
 
-//export type LiveCityReading = OpenAQLiveCityReading
-
 export interface RagAnswer {
   answer: string
   sources: RagSource[]
-  liveAqi?: OpenAQLiveCityReading
-  globalAqi?: GlobalAqiReading
-  adpc?: AdpcForecast
+  liveAqi?: AirQualityWithLocation
 }
 
 interface FirestoreChunk {
@@ -54,18 +49,20 @@ const LOCATION = env.vertex.location
 const EMBEDDING_MODEL = env.vertex.embeddingModel
 const GEMINI_MODEL = env.vertex.geminiModel
 
-/** Maps lowercase city name → ADPC country name */
-const CITY_COUNTRY: Record<string, string> = {
-  bangkok: 'Thailand',
-  manila: 'Philippines',
-  jakarta: 'Indonesia',
-  singapore: 'Singapore',
-  'kuala lumpur': 'Malaysia',
-  'ho chi minh': 'Vietnam',
-  hanoi: 'Vietnam',
-  'phnom penh': 'Cambodia',
-  yangon: 'Myanmar',
-  vientiane: 'Laos',
+function findClosestHourlyIndex(times: string[], target: Date): number {
+  const targetMs = target.getTime()
+  let best = -1
+  let bestDelta = Number.POSITIVE_INFINITY
+  for (let i = 0; i < times.length; i++) {
+    const ts = Date.parse(times[i])
+    if (Number.isNaN(ts)) continue
+    const delta = Math.abs(ts - targetMs)
+    if (delta < bestDelta) {
+      bestDelta = delta
+      best = i
+    }
+  }
+  return best
 }
 
 // ── System prompt (PDD §8.3) ──────────────────────────────────────────────────
@@ -78,9 +75,7 @@ Your role:
 - Be concise and easy to understand for non-technical users
 - Always ground your answers in the provided context; do not invent facts
 - When citing knowledge sources, reference them as [1], [2], etc.
-- If live OpenAQ data is provided, prioritize it for current conditions.
-- If multi-pollutant data (PM10, NO2, SO2, CO, Ozone) is provided from global_aqi_reference, use it to give a fuller picture of air quality beyond just PM2.5
-- If ADPC satellite forecast data is provided, use it to describe current and near-future air quality conditions for that country
+- If Open-Meteo forecast data is provided, use it for current and near-future air quality conditions.
 - If the question is outside air quality or health, politely redirect
 
 Tone: Friendly, clear, and reassuring — not alarmist.`
@@ -92,17 +87,14 @@ export class RAGService {
   private readonly db: Firestore
   private readonly vertexai: VertexAI
   private readonly auth: GoogleAuth
-  private readonly openaq: OpenAQClient | null
-  private readonly bqClient: BQClient
+  private readonly openMeteo: OpenMeteoClient
 
   constructor(projectId: string) {
     this.projectId = projectId
     this.db = new Firestore({ projectId })
     this.vertexai = new VertexAI({ project: projectId, location: LOCATION })
     this.auth = new GoogleAuth({ scopes: 'https://www.googleapis.com/auth/cloud-platform' })
-    const apiKey = process.env.OPENAQ_API_KEY ?? ''
-    this.openaq = apiKey ? new OpenAQClient({ apiKey }) : null
-    this.bqClient = new BQClient(projectId)
+    this.openMeteo = new OpenMeteoClient()
   }
 
   // ── Step 1: Embed ────────────────────────────────────────────────────────────
@@ -155,79 +147,86 @@ export class RAGService {
     return snapshot.docs.map(doc => doc.data() as FirestoreChunk)
   }
 
-  // ── Step 5: Generate ─────────────────────────────────────────────────────────
+  // ── Step 3: Extract location ─────────────────────────────────────────────────
 
-  async ask(question: string, city?: string, country?: string): Promise<RagAnswer> {
-    // Derive country from city if not explicitly provided
-    const resolvedCountry = country ?? (city ? CITY_COUNTRY[city.toLowerCase()] : undefined)
+  private async _extractLocation(question: string): Promise<string | null> {
+    const model = this.vertexai.getGenerativeModel({ model: GEMINI_MODEL })
+    const result = await model.generateContent(
+      `Extract the city or country name from this air quality question. ` +
+        `Return only the place name (e.g. "Bangkok" or "Thailand"), or "none" if no specific location is mentioned.\n\n` +
+        `Question: ${question}`
+    )
+    const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? 'none'
+    return text.toLowerCase() === 'none' ? null : text
+  }
 
-    // Run embedding + all BigQuery lookups in parallel
-    // Run embedding + initial lookups
-    const [queryVector, liveCityAqi, cityGlobal, adpc] = await Promise.all([
+  // ── Step 4: Generate ─────────────────────────────────────────────────────────
+
+  async ask(question: string, city?: string): Promise<RagAnswer> {
+    // Run embedding + location extraction in parallel
+    const [queryVector, detectedLocation] = await Promise.all([
       this._embed(question),
-      city && this.openaq ? this.openaq.getLiveByCity(city) : Promise.resolve(null),
-      city ? this.bqClient.getGlobalAqiForCity(city) : Promise.resolve(null),
-      resolvedCountry
-        ? this.bqClient.getAdpcForecastForCountry(resolvedCountry)
-        : Promise.resolve(null),
+      city ? Promise.resolve(city) : this._extractLocation(question),
     ])
 
-    // If no specific city data found, and we have a "city" input that might be a country, try country lookup
-    let finalGlobalAqi = cityGlobal
-    let finalAdpc = adpc
+    const effectiveCity = city ?? detectedLocation ?? undefined
 
-    if (!finalGlobalAqi && city) {
-      // Try treating the "city" input as a country
-      const countryData = await this.bqClient.getCountryAggregatedData(city)
-      if (countryData) {
-        finalGlobalAqi = countryData
-        // Also try fetching ADPC for this "city-as-country"
-        if (!finalAdpc) {
-          finalAdpc = await this.bqClient.getAdpcForecastForCountry(countryData.country)
-        }
-      }
-    }
-
-    const chunks = await this._retrieveChunks(queryVector)
+    // Fetch AQI data + RAG chunks in parallel now that we have the location
+    const [aqiResult, chunks] = await Promise.all([
+      effectiveCity ? this.openMeteo.getAirQualityByLocation(effectiveCity) : Promise.resolve(null),
+      this._retrieveChunks(queryVector),
+    ])
 
     // Build grounded prompt
-    const liveOpenAqSection = liveCityAqi
-      ? `Live OpenAQ reading for ${liveCityAqi.city}${liveCityAqi.country ? `, ${liveCityAqi.country}` : ''} (${liveCityAqi.timestamp}):\n` +
-        (liveCityAqi.pm25 != null ? `- PM2.5: ${liveCityAqi.pm25} ug/m3\n` : '') +
-        (liveCityAqi.pm10 != null ? `- PM10: ${liveCityAqi.pm10} ug/m3\n` : '') +
-        (liveCityAqi.no2 != null ? `- NO2: ${liveCityAqi.no2} ug/m3\n` : '') +
-        (liveCityAqi.o3 != null ? `- O3: ${liveCityAqi.o3} ug/m3\n` : '')
-      : ''
+    const hourly = aqiResult?.forecast.hourly
+    const locationLabel = aqiResult
+      ? `${aqiResult.location.name}${aqiResult.location.country ? `, ${aqiResult.location.country}` : ''}`
+      : city
 
-    const globalAqiSection = finalGlobalAqi
-      ? `Multi-pollutant reading for ${finalGlobalAqi.city}, ${finalGlobalAqi.country} (${finalGlobalAqi.timestamp}):\n` +
-        (finalGlobalAqi.aqiClass ? `- AQI Class: ${finalGlobalAqi.aqiClass}\n` : '') +
-        (finalGlobalAqi.pm25 != null ? `- PM2.5: ${finalGlobalAqi.pm25} µg/m³\n` : '') +
-        (finalGlobalAqi.pm10 != null ? `- PM10: ${finalGlobalAqi.pm10} µg/m³\n` : '') +
-        (finalGlobalAqi.no2 != null ? `- NO2: ${finalGlobalAqi.no2} µg/m³\n` : '') +
-        (finalGlobalAqi.so2 != null ? `- SO2: ${finalGlobalAqi.so2} µg/m³\n` : '') +
-        (finalGlobalAqi.co != null ? `- CO: ${finalGlobalAqi.co} µg/m³\n` : '') +
-        (finalGlobalAqi.ozone != null ? `- Ozone: ${finalGlobalAqi.ozone} µg/m³\n` : '') +
-        (finalGlobalAqi.aerosolOpticalDepth != null
-          ? `- Aerosol Optical Depth: ${finalGlobalAqi.aerosolOpticalDepth}\n`
-          : '')
-      : ''
+    let forecastSection = ''
+    if (hourly) {
+      const now = new Date()
+      const idx = findClosestHourlyIndex(hourly.time, now)
+      const i = idx !== -1 ? idx : 0
 
-    const adpcSection = finalAdpc
-      ? `ADPC Satellite Forecast for ${finalAdpc.country} (model init: ${finalAdpc.initDate}):\n` +
-        `- Average PM2.5: ${finalAdpc.avgPm25} µg/m³\n` +
-        `- Peak PM2.5: ${finalAdpc.maxPm25} µg/m³\n` +
-        `- Forecast start: ${finalAdpc.nearestForecast}\n`
-      : ''
+      const pm25 = hourly.pm2_5?.[i] ?? null
+      const aqi = pm25 != null ? pm25ToAqi(pm25) : null
+      const category = aqi != null ? aqiToCategory(aqi) : null
+
+      forecastSection =
+        `Current air quality for ${locationLabel} (${hourly.time[i]}):\n` +
+        (pm25 != null ? `- PM2.5: ${pm25} µg/m³\n` : '') +
+        (hourly.pm10?.[i] != null ? `- PM10: ${hourly.pm10[i]} µg/m³\n` : '') +
+        (hourly.nitrogen_dioxide?.[i] != null
+          ? `- NO2: ${hourly.nitrogen_dioxide[i]} µg/m³\n`
+          : '') +
+        (hourly.ozone?.[i] != null ? `- Ozone: ${hourly.ozone[i]} µg/m³\n` : '') +
+        (hourly.carbon_monoxide?.[i] != null ? `- CO: ${hourly.carbon_monoxide[i]} µg/m³\n` : '') +
+        (aqi != null ? `- Estimated AQI: ${aqi}${category ? ` (${category})` : ''}\n` : '') +
+        `\n3-day PM2.5 peak forecast:\n` +
+        [0, 1, 2]
+          .map(day => {
+            const slice = (hourly.pm2_5 ?? [])
+              .slice(day * 24, day * 24 + 24)
+              .filter((v): v is number => v != null)
+            if (!slice.length) return null
+            const peak = Math.max(...slice)
+            const dayAqi = pm25ToAqi(peak)
+            const label = day === 0 ? 'Today' : day === 1 ? 'Tomorrow' : 'Day 3'
+            return `- ${label}: ${peak.toFixed(1)} µg/m³ peak (AQI ${dayAqi}, ${aqiToCategory(dayAqi)})`
+          })
+          .filter(Boolean)
+          .join('\n')
+    }
 
     const ragSection =
       chunks.length > 0
         ? `Relevant knowledge:\n` + chunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n\n')
         : ''
 
-    const hasData = liveOpenAqSection || globalAqiSection || adpcSection || ragSection
+    const hasData = forecastSection || ragSection
     const userPrompt = hasData
-      ? `${liveOpenAqSection}${globalAqiSection}${adpcSection}\n${ragSection}\n\nUser question: ${question}`
+      ? `${forecastSection}\n${ragSection}\n\nUser question: ${question}`
       : `User question: ${question}\n\n(No specific data found — answer from general knowledge about SEA air quality.)`
 
     const model = this.vertexai.getGenerativeModel({
@@ -253,9 +252,7 @@ export class RAGService {
     return {
       answer,
       sources,
-      liveAqi: liveCityAqi ?? undefined,
-      globalAqi: finalGlobalAqi ?? undefined,
-      adpc: finalAdpc ?? undefined,
+      liveAqi: aqiResult ?? undefined,
     }
   }
 }
