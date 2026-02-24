@@ -73,7 +73,9 @@ export const searchRouter = router({
     .query(async ({ input }) => {
       if (input.length === 0) return []
       const client = new OpenMeteoClient()
-      const results = await client.getAirQualityBatch(input)
+      const results = await client.getAirQualityBatch(
+        input.map(c => ({ latitude: c.latitude, longitude: c.longitude }))
+      )
 
       return results.map((res, i) => {
         const pm25Values = res.hourly?.pm2_5 ?? []

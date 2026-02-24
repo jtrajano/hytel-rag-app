@@ -32,10 +32,16 @@ vi.mock('./openMeteoClient.js', () => ({
 vi.mock('../config/env.js', () => ({
   env: {
     projectId: 'test-project',
+    location: 'asia-southeast1',
     vertex: {
       embeddingModel: 'text-embedding-004',
       geminiModel: 'gemini-2.0-flash-001',
       location: 'us-central1',
+    },
+    bigquery: {
+      dataset: 'aircare_sea',
+      globalAqiTable: 'global_aqi_reference',
+      adpcRegionsTable: 'adpc_pm25_regions',
     },
     rag: {
       collection: 'rag_chunks',
@@ -190,7 +196,7 @@ describe('RAGService', () => {
 
   describe('ask() — embedding', () => {
     it('calls the embedding API with the user question', async () => {
-      await service.ask('What causes PM2.5?', 'Bangkok')
+      await service.ask('What causes PM2.5?', [], 'Bangkok')
 
       expect(global.fetch).toHaveBeenCalledOnce()
       const [, opts] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [
@@ -204,7 +210,7 @@ describe('RAGService', () => {
     it('throws when the embedding API returns a non-2xx status', async () => {
       global.fetch = vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }))
 
-      await expect(service.ask('What is PM2.5?', 'Bangkok')).rejects.toThrow(
+      await expect(service.ask('What is PM2.5?', [], 'Bangkok')).rejects.toThrow(
         'Embedding API error (401)'
       )
     })
@@ -213,7 +219,7 @@ describe('RAGService', () => {
       const customVector = Array<number>(768).fill(0.42)
       global.fetch = vi.fn().mockResolvedValue(makeEmbedResponse(customVector))
 
-      await service.ask('Any question', 'Bangkok')
+      await service.ask('Any question', [], 'Bangkok')
 
       expect(mockFindNearest).toHaveBeenCalledWith(
         expect.objectContaining({ queryVector: customVector })
@@ -233,14 +239,14 @@ describe('RAGService', () => {
         return Promise.resolve({ response: { candidates: [] } })
       })
 
-      const result = await service.ask('What is AQI?', 'Bangkok')
+      const result = await service.ask('What is AQI?', [], 'Bangkok')
 
       expect(result.answer).toBe('Sorry, I could not generate an answer. Please try again.')
     })
 
     it('uses no-data fallback prompt when no chunks or live data exist', async () => {
       // city provided, Open-Meteo returns null → no forecastSection
-      await service.ask('Tell me about air quality in SEA', 'UnknownCity')
+      await service.ask('Tell me about air quality in SEA', [], 'UnknownCity')
 
       const calls = mockGenerateContent.mock.calls
       const lastPrompt = (calls[calls.length - 1] as [string])[0]
@@ -252,7 +258,7 @@ describe('RAGService', () => {
         docs: [makeChunkDoc({ content: 'PM2.5 causes respiratory issues.' })],
       })
 
-      await service.ask('Health effects?', 'Bangkok')
+      await service.ask('Health effects?', [], 'Bangkok')
 
       const calls = mockGenerateContent.mock.calls
       const lastPrompt = (calls[calls.length - 1] as [string])[0]
@@ -267,7 +273,7 @@ describe('RAGService', () => {
     it('calls getAirQualityByLocation with the provided city', async () => {
       mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult())
 
-      await service.ask('How is the air in Bangkok?', 'Bangkok')
+      await service.ask('How is the air in Bangkok?', [], 'Bangkok')
 
       expect(mockGetAirQualityByLocation).toHaveBeenCalledWith('Bangkok')
     })
@@ -275,7 +281,7 @@ describe('RAGService', () => {
     it('returns liveAqi with resolved location and forecast', async () => {
       mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult('Bangkok', 'Thailand', 45.0))
 
-      const result = await service.ask('Bangkok air?', 'Bangkok')
+      const result = await service.ask('Bangkok air?', [], 'Bangkok')
 
       expect(result.liveAqi).toBeDefined()
       expect(result.liveAqi?.location.name).toBe('Bangkok')
@@ -285,7 +291,7 @@ describe('RAGService', () => {
     it('returns liveAqi as undefined when Open-Meteo finds no match', async () => {
       mockGetAirQualityByLocation.mockResolvedValue(null)
 
-      const result = await service.ask('Air quality?', 'UnknownCity')
+      const result = await service.ask('Air quality?', [], 'UnknownCity')
 
       expect(result.liveAqi).toBeUndefined()
     })
@@ -293,7 +299,7 @@ describe('RAGService', () => {
     it('includes current conditions with AQI in the Gemini prompt', async () => {
       mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult('Bangkok', 'Thailand', 45.0))
 
-      await service.ask('Bangkok air?', 'Bangkok')
+      await service.ask('Bangkok air?', [], 'Bangkok')
 
       const calls = mockGenerateContent.mock.calls
       const lastPrompt = (calls[calls.length - 1] as [string])[0]
@@ -307,7 +313,7 @@ describe('RAGService', () => {
         makeForecastResult('Manila', 'Philippines', 30.0)
       )
 
-      await service.ask('Manila air?', 'Manila')
+      await service.ask('Manila air?', [], 'Manila')
 
       const calls = mockGenerateContent.mock.calls
       const lastPrompt = (calls[calls.length - 1] as [string])[0]
@@ -345,7 +351,7 @@ describe('RAGService', () => {
     it('uses explicit city and skips extraction entirely', async () => {
       mockGetAirQualityByLocation.mockResolvedValue(makeForecastResult())
 
-      await service.ask('Air quality in Bangkok?', 'Bangkok')
+      await service.ask('Air quality in Bangkok?', [], 'Bangkok')
 
       // With city provided, generateContent is called once (final answer only)
       expect(mockGenerateContent).toHaveBeenCalledTimes(1)
@@ -357,7 +363,7 @@ describe('RAGService', () => {
         makeForecastResult('Thailand', 'Thailand', 18.0)
       )
 
-      const result = await service.ask('Air quality in Thailand?', 'Thailand')
+      const result = await service.ask('Air quality in Thailand?', [], 'Thailand')
 
       expect(mockGetAirQualityByLocation).toHaveBeenCalledWith('Thailand')
       expect(result.liveAqi?.location.name).toBe('Thailand')
