@@ -47,6 +47,7 @@ export const AppRouter = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/chat/:sessionId" element={<ChatPage />} />
         <Route path="/map" element={<PollutionMapPage />} />
       </Route>
     </Routes>

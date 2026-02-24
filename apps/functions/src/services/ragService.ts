@@ -9,7 +9,7 @@
  */
 
 import { Firestore } from '@google-cloud/firestore'
-import { VertexAI } from '@google-cloud/vertexai'
+import { VertexAI, type Content } from '@google-cloud/vertexai'
 import { GoogleAuth } from 'google-auth-library'
 import { OpenMeteoClient } from './openMeteoClient.js'
 import type { AirQualityWithLocation } from './openMeteoClient.js'
@@ -162,7 +162,7 @@ export class RAGService {
 
   // ── Step 4: Generate ─────────────────────────────────────────────────────────
 
-  async ask(question: string, city?: string): Promise<RagAnswer> {
+  async ask(question: string, history: Content[] = [], city?: string): Promise<RagAnswer> {
     // Run embedding + location extraction in parallel
     const [queryVector, detectedLocation] = await Promise.all([
       this._embed(question),
@@ -177,7 +177,7 @@ export class RAGService {
       this._retrieveChunks(queryVector),
     ])
 
-    // Build grounded prompt
+    // Build grounded context
     const hourly = aqiResult?.forecast.hourly
     const locationLabel = aqiResult
       ? `${aqiResult.location.name}${aqiResult.location.country ? `, ${aqiResult.location.country}` : ''}`
@@ -225,16 +225,18 @@ export class RAGService {
         : ''
 
     const hasData = forecastSection || ragSection
-    const userPrompt = hasData
-      ? `${forecastSection}\n${ragSection}\n\nUser question: ${question}`
-      : `User question: ${question}\n\n(No specific data found — answer from general knowledge about SEA air quality.)`
+    const contextualPrompt = hasData
+      ? `CONTEXTUAL DATA:\n${forecastSection}\n${ragSection}\n\nUSER QUESTION: ${question}`
+      : question
 
     const model = this.vertexai.getGenerativeModel({
       model: GEMINI_MODEL,
       systemInstruction: { role: 'system', parts: [{ text: SYSTEM_PROMPT }] },
     })
 
-    const result = await model.generateContent(userPrompt)
+    const chat = model.startChat({ history })
+    const result = await chat.sendMessage(contextualPrompt)
+
     const answer =
       result.response.candidates?.[0]?.content?.parts?.[0]?.text ??
       'Sorry, I could not generate an answer. Please try again.'

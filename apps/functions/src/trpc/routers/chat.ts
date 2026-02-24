@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { Firestore, Timestamp } from '@google-cloud/firestore'
+import type { Content } from '@google-cloud/vertexai'
 import { router, protectedProcedure, publicProcedure } from '../trpc.js'
 import { RAGService } from '../../services/ragService.js'
 import { SearchService } from '../../services/searchService.js'
@@ -7,6 +9,7 @@ import { OpenMeteoClient } from '../../services/openMeteoClient.js'
 import { pm25ToAqi, aqiToCategory } from '../../utils/aqiUtils.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
+const db = new Firestore({ projectId: PROJECT_ID })
 
 function findClosestHourlyIndex(times: string[], target: Date): number {
   if (!times.length) return -1
@@ -73,18 +76,115 @@ export const chatRouter = router({
         message: `No air quality data found for ${input.city}.`,
       })
     }),
+
+  listSessions: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.user.uid
+    const snapshot = await db.collection('chat_sessions').where('userId', '==', userId).get()
+
+    const sessions = snapshot.docs.map(doc => ({
+      id: doc.id,
+      title: doc.data().title || 'Untitled Chat',
+      updatedAt: (doc.data().updatedAt as Timestamp).toDate().toISOString(),
+    }))
+
+    return sessions.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  }),
+
+  getSessionMessages: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const { sessionId } = input
+      const userId = ctx.user.uid
+
+      const sessDoc = await db.collection('chat_sessions').doc(sessionId).get()
+      if (!sessDoc.exists || sessDoc.data()?.userId !== userId) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Chat session not found' })
+      }
+
+      const snapshot = await db
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .collection('messages')
+        .orderBy('timestamp', 'asc')
+        .get()
+
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        role: doc.data().role,
+        content: doc.data().content,
+        sources: doc.data().sources,
+        timestamp: (doc.data().timestamp as Timestamp).toDate().toISOString(),
+      }))
+    }),
+
   ask: protectedProcedure
     .input(
       z.object({
         question: z.string().min(1).max(500),
+        sessionId: z.string().optional(),
         city: z.string().optional(),
         country: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.user.uid
+      let sessionId = input.sessionId
+
+      if (!sessionId) {
+        const sessRef = await db.collection('chat_sessions').add({
+          userId,
+          title: input.question.slice(0, 40) + (input.question.length > 40 ? '...' : ''),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        })
+        sessionId = sessRef.id
+      } else {
+        const sessDoc = await db.collection('chat_sessions').doc(sessionId).get()
+        if (!sessDoc.exists || sessDoc.data()?.userId !== userId) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Chat session not found' })
+        }
+      }
+
+      const msgSnapshot = await db
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .collection('messages')
+        .orderBy('timestamp', 'asc')
+        .get()
+
+      const history: Content[] = msgSnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          role: data.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: data.content }],
+        }
+      })
+
       const rag = new RAGService(PROJECT_ID)
-      return await rag.ask(input.question, input.city)
+      const data = await rag.ask(input.question, history, input.city)
+
+      const sessionRef = db.collection('chat_sessions').doc(sessionId)
+      await Promise.all([
+        sessionRef.collection('messages').add({
+          role: 'user',
+          content: input.question,
+          timestamp: Timestamp.now(),
+        }),
+        sessionRef.collection('messages').add({
+          role: 'assistant',
+          content: data.answer,
+          sources: data.sources,
+          timestamp: Timestamp.now(),
+        }),
+        sessionRef.update({ updatedAt: Timestamp.now() }),
+      ])
+
+      return {
+        ...data,
+        sessionId,
+      }
     }),
+
   // Query mirror for clients that issue GET requests (e.g., stale cached bundles).
   askBriefing: publicProcedure
     .input(
@@ -131,6 +231,6 @@ Open-Meteo nearest hourly air-quality sample for ${input.city}:
       }
 
       const rag = new RAGService(PROJECT_ID)
-      return await rag.ask(question, input.city)
+      return await rag.ask(question, [], input.city)
     }),
 })
