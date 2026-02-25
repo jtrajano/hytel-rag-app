@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, renderHook, act, waitFor } from '@testing-library/react'
 import { AuthProvider, useAuthContext } from './AuthProvider'
 
+type AuthContextTestShape = {
+  user: { uid: string } | null
+  loading: boolean
+  signInRedirect: string | null
+  signInWithEmail: (email: string, pass: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
+  signOut: () => Promise<void>
+}
+
 const {
   mockAuth,
   mockDb,
@@ -72,9 +81,13 @@ describe('AuthProvider', () => {
   })
 
   it('signs in with email, sets redirect, and updates last login timestamp', async () => {
-    let ctx: ReturnType<typeof useAuthContext> | null = null
+    let ctx: AuthContextTestShape | null = null
+    const getCtx = () => {
+      if (!ctx) throw new Error('auth context not ready')
+      return ctx
+    }
     function Capture() {
-      ctx = useAuthContext()
+      ctx = useAuthContext() as unknown as AuthContextTestShape
       return null
     }
 
@@ -87,9 +100,9 @@ describe('AuthProvider', () => {
       </AuthProvider>
     )
 
-    await waitFor(() => expect(ctx?.loading).toBe(false))
+    await waitFor(() => expect(getCtx().loading).toBe(false))
     await act(async () => {
-      await ctx?.signInWithEmail('jane@example.com', 'secret')
+      await getCtx().signInWithEmail('jane@example.com', 'secret')
     })
 
     expect(mockSignInWithEmailAndPassword).toHaveBeenCalledWith(
@@ -98,13 +111,17 @@ describe('AuthProvider', () => {
       'secret'
     )
     expect(mockSetDoc).toHaveBeenCalledWith('users/user-1', { lastLoginAt: 'ts' }, { merge: true })
-    expect(ctx?.signInRedirect).toBe('/dashboard')
+    expect(getCtx().signInRedirect).toBe('/dashboard')
   })
 
   it('creates a new firestore profile for new google sign-ins', async () => {
-    let ctx: ReturnType<typeof useAuthContext> | null = null
+    let ctx: AuthContextTestShape | null = null
+    const getCtx = () => {
+      if (!ctx) throw new Error('auth context not ready')
+      return ctx
+    }
     function Capture() {
-      ctx = useAuthContext()
+      ctx = useAuthContext() as unknown as AuthContextTestShape
       return null
     }
 
@@ -124,9 +141,9 @@ describe('AuthProvider', () => {
       </AuthProvider>
     )
 
-    await waitFor(() => expect(ctx).not.toBeNull())
+    await waitFor(() => expect(getCtx()).toBeTruthy())
     await act(async () => {
-      await ctx?.signInWithGoogle()
+      await getCtx().signInWithGoogle()
     })
 
     expect(mockSignInWithPopup).toHaveBeenCalledWith(mockAuth, mockGoogleProvider)
@@ -139,13 +156,17 @@ describe('AuthProvider', () => {
         homeCity: null,
       })
     )
-    expect(ctx?.signInRedirect).toBe('/onboarding/profile')
+    expect(getCtx().signInRedirect).toBe('/onboarding/profile')
   })
 
   it('signs out and clears redirect', async () => {
-    let ctx: ReturnType<typeof useAuthContext> | null = null
+    let ctx: AuthContextTestShape | null = null
+    const getCtx = () => {
+      if (!ctx) throw new Error('auth context not ready')
+      return ctx
+    }
     function Capture() {
-      ctx = useAuthContext()
+      ctx = useAuthContext() as unknown as AuthContextTestShape
       return null
     }
 
@@ -161,13 +182,13 @@ describe('AuthProvider', () => {
       </AuthProvider>
     )
 
-    await waitFor(() => expect(ctx?.user).toBeTruthy())
+    await waitFor(() => expect(getCtx().user).toBeTruthy())
     await act(async () => {
-      await ctx?.signOut()
+      await getCtx().signOut()
     })
 
     expect(mockFirebaseSignOut).toHaveBeenCalledWith(mockAuth)
-    expect(ctx?.user).toBeNull()
-    expect(ctx?.signInRedirect).toBeNull()
+    expect(getCtx().user).toBeNull()
+    expect(getCtx().signInRedirect).toBeNull()
   })
 })

@@ -5,6 +5,16 @@ import { useCountryAQI } from './useCountryAQI'
 import { useAuth } from '@/hooks/useAuth'
 import { trpc } from '@/lib/trpc'
 
+type UseQueriesArg = {
+  queries: Array<{
+    queryKey: unknown[]
+    queryFn: () => Promise<unknown>
+    staleTime: number
+    retry: boolean
+    enabled: boolean
+  }>
+}
+
 vi.mock('@tanstack/react-query', () => ({
   useQueries: vi.fn(),
 }))
@@ -38,7 +48,7 @@ describe('useCountryAQI', () => {
 
     renderHook(() => useCountryAQI())
 
-    const arg = vi.mocked(useQueries).mock.calls[0][0]
+    const arg = vi.mocked(useQueries).mock.calls[0][0] as UseQueriesArg
     expect(arg.queries).toHaveLength(11)
     expect(arg.queries[0]).toEqual(
       expect.objectContaining({
@@ -54,7 +64,7 @@ describe('useCountryAQI', () => {
 
     vi.mocked(useAuth).mockReturnValue({ user: null, loading: false } as never)
     renderHook(() => useCountryAQI())
-    const argNoUser = vi.mocked(useQueries).mock.calls[1][0]
+    const argNoUser = vi.mocked(useQueries).mock.calls[1][0] as UseQueriesArg
     expect(argNoUser.queries.every((q: { enabled: boolean }) => q.enabled === false)).toBe(true)
   })
 
