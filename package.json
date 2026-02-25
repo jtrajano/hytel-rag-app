@@ -19,7 +19,23 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish",
-    "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test"
+    "precheck": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
+    "ingest:openaq:historical": "node scripts/ingest-openaq-historical.mjs",
+    "load:bq": "node scripts/load-to-bigquery.mjs",
+    "prepare:training": "python scripts/prepare_training_data.py",
+    "extract:docs": "node scripts/extract-docs.mjs",
+    "fetch:docs": "node scripts/fetch-docs.mjs",
+    "chunk:docs": "python scripts/chunk_documents.py",
+    "embed:docs": "python scripts/generate_embeddings.py",
+    "index:docs": "python scripts/save_to_firestore.py",
+    "load:kaggle": "python scripts/load_kaggle_aqi.py",
+    "ingest:adpc": "python scripts/ingest_adpc_pm25.py",
+    "ingest:adpc:provinces": "python scripts/ingest_adpc_province_timeseries.py"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.3.0",
+    "cheerio": "^1.0.0",
+    "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
@@ -29,6 +45,13 @@
     "prettier": "^3.2.5",
     "syncpack": "^13.0.0",
     "turbo": "^2.7.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "braces": "^3.0.3",
+      "esbuild": "^0.27.3",
+      "rollup": "^4.22.4"
+    }
   },
   "packageManager": "pnpm@8.15.6",
   "engines": {

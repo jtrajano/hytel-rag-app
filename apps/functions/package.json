@@ -2,29 +2,50 @@
   "name": "@repo/functions",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": "20"
+  },
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "exports": {
-    ".": "./src/index.ts",
-    "./router": "./src/trpc/router.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./router": {
+      "types": "./src/trpc/router.ts",
+      "default": "./dist/trpc/router.js"
+    }
   },
   "scripts": {
+    "prepare:vendor": "pnpm -C ../.. --filter @repo/shared build && node ./scripts/prepare-vendor-shared.mjs",
     "build": "tsc",
+    "build:deploy": "pnpm run prepare:vendor && pnpm run build",
     "dev": "tsc --watch",
+    "serve": "tsx watch --env-file ../../.env.local src/server.ts",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@google-cloud/bigquery": "^7.0.0",
+    "@google-cloud/firestore": "^7.3.0",
+    "@google-cloud/vertexai": "^1.9.0",
     "@repo/shared": "workspace:*",
     "@trpc/server": "^11.0.0-rc.660",
-    "zod": "^3.23.8"
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "firebase-admin": "^13.6.1",
+    "firebase-functions": "^7.0.5",
+    "google-auth-library": "^9.0.0",
+    "zod": "3.25.76"
   },
   "devDependencies": {
-    "@repo/config": "workspace:*",
-    "@repo/eslint-config": "workspace:*",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "eslint": "^8.57.0",
-    "typescript": "5.5.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }
 }

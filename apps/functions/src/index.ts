@@ -1,15 +1,11 @@
-// Firebase Functions entry point (stub)
-// This file serves as the entry point for Firebase Cloud Functions
-// In production, this would be deployed to Firebase
+import { onRequest } from 'firebase-functions/v2/https'
+import { setGlobalOptions } from 'firebase-functions/v2/options'
+import { defineSecret } from 'firebase-functions/params'
+import app from './app.js'
+import { env } from './config/env.js'
 
-export { appRouter, type AppRouter } from './trpc/router'
+setGlobalOptions({ region: env.location })
 
-// Stub: When deploying to Firebase, you would use:
-// import * as functions from 'firebase-functions'
-// import { createHTTPHandler } from '@trpc/server/adapters/standalone'
-//
-// export const api = functions.https.onRequest(
-//   createHTTPHandler({ router: appRouter })
-// )
+const OPENAQ_API_KEY = defineSecret('OPENAQ_API_KEY')
 
-console.log('Functions entry point loaded (stub mode)')
+export const api = onRequest({ cors: true, secrets: [OPENAQ_API_KEY] }, app)

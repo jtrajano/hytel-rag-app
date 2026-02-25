@@ -35,6 +35,7 @@ on:
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '8'
+  FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
 
 # ============================================================================
 # CONCURRENCY
@@ -145,9 +146,13 @@ jobs:
         run: pnpm build
         env:
           NODE_ENV: production
-          # TODO: Update with your production API URL
-          VITE_API_URL: https://api.example.com
-
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
       # ======================================================================
       # WIF Authentication
       # ======================================================================
@@ -155,8 +160,11 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SA_EMAIL }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
 
       # ======================================================================
       # Deploy to Firebase
@@ -164,10 +172,20 @@ jobs:
       - name: Deploy to Firebase Hosting
         run: |
           npm install -g firebase-tools
-          firebase deploy --only hosting
+          firebase deploy --project "$FIREBASE_PROJECT_ID" --only hosting
+
+      - name: Prepare Functions Manifest for Firebase Build
+        run: node scripts/prepare-functions-deploy-manifest.mjs
+
+      - name: Verify OPENAQ_API_KEY exists in Secret Manager
+        run: |
+          if ! gcloud secrets describe OPENAQ_API_KEY --project "$FIREBASE_PROJECT_ID" >/dev/null 2>&1; then
+            echo "::error::Missing Secret Manager secret OPENAQ_API_KEY in project $FIREBASE_PROJECT_ID"
+            exit 1
+          fi
 
       - name: Deploy Firebase Functions
-        run: firebase deploy --only functions
+        run: firebase deploy --project "$FIREBASE_PROJECT_ID" --only functions
         continue-on-error: true
 
       - name: Deployment Summary
