@@ -10,6 +10,9 @@ import { pm25ToAqi, aqiToCategory, findClosestHourlyIndex } from '../../utils/aq
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 const db = new Firestore({ projectId: PROJECT_ID })
+const rag = new RAGService(PROJECT_ID)
+const searchService = new SearchService(PROJECT_ID)
+const openMeteo = new OpenMeteoClient()
 
 export const chatRouter = router({
   currentAqi: publicProcedure
@@ -19,8 +22,7 @@ export const chatRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const svc = new SearchService(PROJECT_ID)
-      const result = await svc.lookupCity(input.city)
+      const result = await searchService.lookupCity(input.city)
 
       if (result) {
         return {
@@ -32,7 +34,6 @@ export const chatRouter = router({
       }
 
       // Fallback: if SearchService misses (e.g., missing OpenAQ/BQ data), use Open-Meteo forecast.
-      const openMeteo = new OpenMeteoClient()
       const forecast = await openMeteo.get3DayForecast(input.city)
       const pm25Values = forecast?.hourly?.pm2_5 ?? []
       const firstIndex = pm25Values.findIndex(v => v !== null)
@@ -140,7 +141,6 @@ export const chatRouter = router({
         }
       })
 
-      const rag = new RAGService(PROJECT_ID)
       const data = await rag.ask(input.question, history, input.city)
 
       const sessionRef = db.collection('chat_sessions').doc(sessionId)
@@ -179,7 +179,6 @@ export const chatRouter = router({
 
       if (input.city) {
         try {
-          const openMeteo = new OpenMeteoClient()
           const forecast = await openMeteo.get3DayForecast(input.city)
           const times = forecast?.hourly?.time ?? []
           const idx = findClosestHourlyIndex(times, new Date())
@@ -210,7 +209,6 @@ Open-Meteo nearest hourly air-quality sample for ${input.city}:
         }
       }
 
-      const rag = new RAGService(PROJECT_ID)
       return await rag.ask(question, [], input.city)
     }),
 })
