@@ -38,6 +38,12 @@ export interface AirQualityWithLocation {
   forecast: AirQualityResponse
 }
 
+// --- Geocoding cache ---
+// Module-level: shared across all OpenMeteoClient instances within the same
+// warm Cloud Function invocation, eliminating duplicate geocode calls for the
+// same city name within a single request chain.
+const geocodeCache = new Map<string, GeocodingResult | null>()
+
 // --- Client ---
 
 export interface OpenMeteoClientOptions {
@@ -60,8 +66,13 @@ export class OpenMeteoClient {
 
   /**
    * Resolves a city name to its geographic coordinates.
+   * Results are cached at the module level to avoid redundant API calls
+   * when the same city is geocoded multiple times within a warm instance.
    */
   async geocodeCity(city: string): Promise<GeocodingResult | null> {
+    const key = city.toLowerCase().trim()
+    if (geocodeCache.has(key)) return geocodeCache.get(key)!
+
     const url = new URL(`${this.geocodingBaseUrl}/search`)
     url.searchParams.set('name', city)
     url.searchParams.set('count', '1')
@@ -80,12 +91,10 @@ export class OpenMeteoClient {
 
     const data = await response.json()
     const parsed = GeocodingResponseSchema.parse(data)
+    const result = parsed.results && parsed.results.length > 0 ? parsed.results[0] : null
 
-    if (!parsed.results || parsed.results.length === 0) {
-      return null
-    }
-
-    return parsed.results[0]
+    geocodeCache.set(key, result)
+    return result
   }
 
   /**

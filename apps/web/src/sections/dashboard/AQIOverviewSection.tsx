@@ -14,12 +14,12 @@ interface AQIOverviewSectionProps {
 }
 
 const AQIOverviewSection = ({ homeCity }: AQIOverviewSectionProps) => {
-  const city = homeCity ?? 'Manila'
+  const city = homeCity ?? ''
   const { user, loading } = useAuth()
   const { data, isLoading, isError } = trpc.chat.currentAqi.useQuery(
     { city },
     {
-      enabled: !loading && !!user,
+      enabled: !loading && !!user && !!homeCity,
       staleTime: TEN_MINUTES_MS,
       gcTime: TEN_MINUTES_MS,
       refetchInterval: TEN_MINUTES_MS,

@@ -22,7 +22,7 @@ export const chatRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const result = await searchService.lookupCity(input.city)
+      const result = await searchService.lookupCity(input.city, true)
 
       if (result) {
         return {

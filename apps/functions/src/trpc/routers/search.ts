@@ -4,6 +4,10 @@ import { SearchService } from '../../services/searchService.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 
+// Module-level instance: shared across warm Cloud Function invocations,
+// avoiding repeated client construction overhead on every request.
+const svc = new SearchService(PROJECT_ID)
+
 const AqiCategorySchema = z.enum([
   'Good',
   'Moderate',
@@ -49,11 +53,12 @@ const CitySearchResultSchema = z
 
 export const searchRouter = router({
   byCity: protectedProcedure
-    .input(z.object({ query: z.string().min(1).max(100) }))
+    .input(
+      z.object({ query: z.string().min(1).max(100), skipAi: z.boolean().optional().default(false) })
+    )
     .output(CitySearchResultSchema)
     .query(async ({ input }) => {
-      const svc = new SearchService(PROJECT_ID)
-      return await svc.lookupCity(input.query)
+      return await svc.lookupCity(input.query, input.skipAi)
     }),
 
   batchCities: protectedProcedure
@@ -70,8 +75,6 @@ export const searchRouter = router({
     .output(z.array(RegionAQIDataSchema))
     .query(async ({ input }) => {
       if (input.length === 0) return []
-
-      const svc = new SearchService(PROJECT_ID)
 
       // Fetch all cities in parallel using lookupCity (skipping Vertex AI generation)
       const results = await Promise.all(

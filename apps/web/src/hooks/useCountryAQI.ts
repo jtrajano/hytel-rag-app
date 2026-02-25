@@ -44,8 +44,8 @@ export function useCountryAQI(): UseCountryAQIResult {
 
   const queries = useQueries({
     queries: SEA_COUNTRIES.map(country => ({
-      queryKey: ['search', 'byCity', { query: country }],
-      queryFn: () => utils.search.byCity.fetch({ query: country }),
+      queryKey: ['search', 'byCity', { query: country, skipAi: true }],
+      queryFn: () => utils.search.byCity.fetch({ query: country, skipAi: true }),
       staleTime: 5 * 60 * 1000,
       retry: false,
       enabled: !loading && !!user,

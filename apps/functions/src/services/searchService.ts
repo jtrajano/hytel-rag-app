@@ -166,9 +166,11 @@ export class SearchService {
     this.openMeteo = new OpenMeteoClient()
   }
 
-  // ── Step 2: Live city data — OpenAQ → Open-Meteo fallback ────────────────
-  // Tries OpenAQ first (requires OPENAQ_API_KEY); falls back to Open-Meteo
-  // forecast data when OpenAQ is unavailable or returns no measurements.
+  // ── Step 1 (fast path): Live city data — OpenAQ + Open-Meteo in parallel ──
+  // Both sources run simultaneously. OpenAQ provides real-time ground-station
+  // readings; Open-Meteo provides satellite-based forecasts with module-level
+  // geocoding cache. Running in parallel cuts latency to ~500ms instead of
+  // the sequential 5-30s + 1-3s that running BigQuery first imposed.
 
   private async fetchLiveCityData(searchQuery: string): Promise<{
     city: string
@@ -179,47 +181,44 @@ export class SearchService {
     o3: number | null
     timestamp: string
   } | null> {
-    // Attempt 2: Open-Meteo air quality forecast
-    try {
-      const omResult = await this.openMeteo.getAirQualityByLocation(searchQuery)
-      if (omResult) {
-        const { location, forecast } = omResult
-        return {
-          city: location.name,
-          country: location.country ?? '',
-          pm25: forecast.hourly?.pm2_5?.find((v: number | null) => v !== null) ?? null,
-          pm10: forecast.hourly?.pm10?.find((v: number | null) => v !== null) ?? null,
-          no2: forecast.hourly?.nitrogen_dioxide?.find((v: number | null) => v !== null) ?? null,
-          o3: forecast.hourly?.ozone?.find((v: number | null) => v !== null) ?? null,
-          timestamp: forecast.hourly?.time[0] ?? new Date().toISOString(),
-        }
+    // Start both requests simultaneously
+    const openaqPromise = this.openaq
+      ? this.openaq.getCurrentByCity(searchQuery).catch(() => null)
+      : Promise.resolve(null)
+    const openMeteoPromise = this.openMeteo.getAirQualityByLocation(searchQuery).catch(() => null)
+
+    const [aqResult, omResult] = await Promise.all([openaqPromise, openMeteoPromise])
+
+    // Prefer OpenAQ (real-time ground station) when it has measurements
+    if (aqResult?.measurements?.length) {
+      const get = (param: string) =>
+        aqResult.measurements!.find((m: { parameter: string }) => m.parameter === param)?.value ??
+        null
+      return {
+        city: aqResult.city ?? aqResult.location ?? searchQuery,
+        country:
+          typeof aqResult.country === 'string'
+            ? aqResult.country
+            : aqResult.country?.code ?? aqResult.country?.name ?? '',
+        pm25: get('pm25'),
+        pm10: get('pm10'),
+        no2: get('no2'),
+        o3: get('o3'),
+        timestamp: aqResult.measurements![0]?.datetime?.utc ?? new Date().toISOString(),
       }
-    } catch {
-      // fall through
     }
 
-    // Attempt 1: OpenAQ live readings
-    if (this.openaq) {
-      try {
-        const result = await this.openaq.getCurrentByCity(searchQuery)
-        if (result?.measurements?.length) {
-          const get = (param: string) =>
-            result.measurements!.find(m => m.parameter === param)?.value ?? null
-          return {
-            city: result.city ?? result.location ?? searchQuery,
-            country:
-              typeof result.country === 'string'
-                ? result.country
-                : result.country?.code ?? result.country?.name ?? '',
-            pm25: get('pm25'),
-            pm10: get('pm10'),
-            no2: get('no2'),
-            o3: get('o3'),
-            timestamp: result.measurements![0]?.datetime?.utc ?? new Date().toISOString(),
-          }
-        }
-      } catch {
-        // fall through to Open-Meteo
+    // Fall back to Open-Meteo satellite forecast (~500ms, geocode-cached)
+    if (omResult) {
+      const { location, forecast } = omResult
+      return {
+        city: location.name,
+        country: location.country ?? '',
+        pm25: forecast.hourly?.pm2_5?.find((v: number | null) => v !== null) ?? null,
+        pm10: forecast.hourly?.pm10?.find((v: number | null) => v !== null) ?? null,
+        no2: forecast.hourly?.nitrogen_dioxide?.find((v: number | null) => v !== null) ?? null,
+        o3: forecast.hourly?.ozone?.find((v: number | null) => v !== null) ?? null,
+        timestamp: forecast.hourly?.time[0] ?? new Date().toISOString(),
       }
     }
 
@@ -362,25 +361,9 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
   // ── Public API ─────────────────────────────────────────────────────────────
 
   async lookupCity(searchQuery: string, skipAi: boolean = false): Promise<CitySearchResult | null> {
-    // Step 1: BigQuery city match
-    const cityRow = await this.bqClient.fetchCityData(searchQuery)
-    if (cityRow) {
-      return this.buildCityResult({
-        type: 'city',
-        name: cityRow.city,
-        country: cityRow.country,
-        locationLabel: `${cityRow.city}, ${cityRow.country}`,
-        flagEmoji: resolveFlagEmoji(cityRow.country),
-        pm25: cityRow.pm25 ?? 0,
-        pm10: cityRow.pm10 ?? 0,
-        no2: cityRow.no2 ?? 0,
-        o3: cityRow.ozone ?? 0,
-        updatedAt: cityRow.timestamp,
-        skipAi,
-      })
-    }
-
-    // Step 2: Live city data — OpenAQ with Open-Meteo fallback
+    // Step 1: Fast path — live data via OpenAQ + Open-Meteo in parallel (~500ms).
+    // This covers virtually all cities and countries via geocoding. BigQuery is
+    // only used as a fallback for the rare case where Open-Meteo has no data.
     const liveRow = await this.fetchLiveCityData(searchQuery)
     if (liveRow) {
       return this.buildCityResult({
@@ -398,7 +381,25 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
       })
     }
 
-    // Step 3: Fall back to country aggregate — run both tables in parallel
+    // Step 2: BigQuery city match — fallback for locations Open-Meteo couldn't resolve.
+    const cityRow = await this.bqClient.fetchCityData(searchQuery)
+    if (cityRow) {
+      return this.buildCityResult({
+        type: 'city',
+        name: cityRow.city,
+        country: cityRow.country,
+        locationLabel: `${cityRow.city}, ${cityRow.country}`,
+        flagEmoji: resolveFlagEmoji(cityRow.country),
+        pm25: cityRow.pm25 ?? 0,
+        pm10: cityRow.pm10 ?? 0,
+        no2: cityRow.no2 ?? 0,
+        o3: cityRow.ozone ?? 0,
+        updatedAt: cityRow.timestamp,
+        skipAi,
+      })
+    }
+
+    // Step 3: Country aggregate from BigQuery (national average across all cities).
     const [countryRow, adpcRow] = await Promise.all([
       this.bqClient.fetchCountryData(searchQuery),
       this.bqClient.fetchAdpcCountryData(searchQuery),

@@ -11,12 +11,12 @@ interface ForecastSectionProps {
 }
 
 const ForecastSection = ({ homeCity }: ForecastSectionProps) => {
-  const city = homeCity ?? 'Manila' // Default to Manila
+  const city = homeCity ?? ''
   const { user, loading } = useAuth()
   const { data, isLoading, isError } = trpc.forecast.byCity.useQuery(
     { city },
     {
-      enabled: !loading && !!user && !!city,
+      enabled: !loading && !!user && !!homeCity,
       staleTime: 60 * 60 * 1000, // 1 hour
       gcTime: 60 * 60 * 1000,
       refetchInterval: 60 * 60 * 1000,
