@@ -257,9 +257,9 @@ const ChatSection = () => {
   const showEmpty = messages.length === 0 && !askMutation.isPending && !isLoadingHistory
 
   return (
-    <div className="flex flex-col h-screen bg-white overflow-hidden relative">
+    <div className="flex flex-col h-screen bg-background overflow-hidden relative">
       {/* ── Global Header ────────────────────────────────────────────────────────── */}
-      <header className="shrink-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
+      <header className="shrink-0 z-30 bg-background backdrop-blur-md border-b border-border px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
@@ -296,7 +296,7 @@ const ChatSection = () => {
               onClick={startNewChat}
               variant="outline"
               size="sm"
-              className="gap-2 shadow-sm bg-white hover:bg-slate-50"
+              className="gap-2 shadow-sm bg-background hover:bg-slate-50"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">New Chat</span>
@@ -335,7 +335,7 @@ const ChatSection = () => {
               isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
             )}
           >
-            <div className="p-4 flex flex-col h-full bg-white lg:bg-transparent">
+            <div className="p-4 flex flex-col h-full bg-background lg:bg-transparent">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="flex items-center gap-2 font-semibold text-sm text-foreground">
                   <History className="w-4 h-4 text-primary" />
@@ -403,12 +403,12 @@ const ChatSection = () => {
           </aside>
 
           {/* Messages Scroll Area */}
-          <main className="flex-1 flex flex-col min-w-0 bg-white lg:border-l lg:border-border overflow-y-auto scroll-smooth">
+          <main className="flex-1 flex flex-col min-w-0 bg-background lg:border-l lg:border-border overflow-y-auto scroll-smooth scrollbar-hide">
             <div className="max-w-4xl mx-auto w-full px-4 py-8">
               {isLoadingHistory ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                   <Loader2 className="w-8 h-8 animate-spin mb-2 text-primary" />
-                  <p className="text-sm font-medium">Retrieving messages...</p>
+                  <p className="text-sm font-medium">Loading messages...</p>
                 </div>
               ) : showEmpty ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center max-w-lg mx-auto">
@@ -462,7 +462,7 @@ const ChatSection = () => {
       </div>
 
       {/* ── Global Footer Input Area ────────────────────────────────────────── */}
-      <footer className="shrink-0 bg-white border-t border-border px-4 py-4 md:py-6">
+      <footer className="shrink-0 bg-background border-t border-border px-4 py-4 md:py-6">
         <div className="max-w-3xl mx-auto">
           <div className="flex gap-3 items-end">
             <div className="flex-1 relative">
