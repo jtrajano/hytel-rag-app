@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { z } from 'zod'
+import { Wind, Loader2 } from 'lucide-react'
 import { useForm, ControllerRenderProps } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Wind, Loader2 } from 'lucide-react'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,12 +16,19 @@ import {
 } from '@/components/ui/form'
 import { useAuth } from '@/hooks/useAuth'
 
-const loginSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-  password: z.string().min(1, { message: 'Password is required.' }),
-})
+const signupSchema = z
+  .object({
+    name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+    email: z.string().email({ message: 'Please enter a valid email address.' }),
+    password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+    confirmPassword: z.string(),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match.",
+    path: ['confirmPassword'],
+  })
 
-type LoginFormValues = z.infer<typeof loginSchema>
+type SignupFormValues = z.infer<typeof signupSchema>
 
 function GoogleIcon() {
   return (
@@ -46,35 +53,33 @@ function GoogleIcon() {
   )
 }
 
-const LoginSection = () => {
-  const { signInWithGoogle, signInWithEmail } = useAuth()
+const SignupSection = () => {
+  const { signInWithGoogle, signUpWithEmail } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
+      confirmPassword: '',
     },
   })
 
-  async function onSubmit(data: LoginFormValues) {
+  async function onSubmit(data: SignupFormValues) {
     setError(null)
     setLoading(true)
     try {
-      await signInWithEmail(data.email, data.password)
+      await signUpWithEmail(data.email, data.password, data.name)
     } catch (err: unknown) {
-      console.error('Login error:', err)
+      console.error('Signup error:', err)
       const firebaseError = err as { code?: string; message?: string }
-      if (
-        firebaseError.code === 'auth/invalid-credential' ||
-        firebaseError.code === 'auth/user-not-found' ||
-        firebaseError.code === 'auth/wrong-password'
-      ) {
-        setError('Invalid email or password.')
+      if (firebaseError.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists.')
       } else {
-        setError(firebaseError.message || 'Failed to sign in. Please try again.')
+        setError(firebaseError.message || 'Failed to create an account. Please try again.')
       }
     } finally {
       setLoading(false)
@@ -83,7 +88,7 @@ const LoginSection = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br px-6 py-12">
-      {/* Logo — mirrors SplashSection */}
+      {/* Logo */}
       <div className="mb-8 flex items-center justify-center w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border shadow-sm">
         <Wind className="w-10 h-10 text-primary" />
       </div>
@@ -92,13 +97,13 @@ const LoginSection = () => {
         AirCare SEA
       </h1>
       <p className="text-base font-medium text-center text-muted-foreground max-w-xs mb-8">
-        Sign in to get personalized air quality insights for Southeast Asia
+        Create an account to get personalized air quality insights
       </p>
 
-      {/* Sign-in card */}
+      {/* Sign-up card */}
       <div className="w-full max-w-sm bg-card rounded-2xl p-8 shadow-xl border">
         <h2 className="text-xl font-semibold text-card-foreground text-center mb-6">
-          Welcome Back
+          Create an Account
         </h2>
 
         {error && (
@@ -111,8 +116,22 @@ const LoginSection = () => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mb-6">
             <FormField
               control={form.control}
+              name="name"
+              render={({ field }: { field: ControllerRenderProps<SignupFormValues, 'name'> }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="email"
-              render={({ field }: { field: ControllerRenderProps<LoginFormValues, 'email'> }) => (
+              render={({ field }: { field: ControllerRenderProps<SignupFormValues, 'email'> }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
@@ -129,10 +148,28 @@ const LoginSection = () => {
               render={({
                 field,
               }: {
-                field: ControllerRenderProps<LoginFormValues, 'password'>
+                field: ControllerRenderProps<SignupFormValues, 'password'>
               }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({
+                field,
+              }: {
+                field: ControllerRenderProps<SignupFormValues, 'confirmPassword'>
+              }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
@@ -145,10 +182,10 @@ const LoginSection = () => {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  Creating account...
                 </>
               ) : (
-                'Sign In'
+                'Create Account'
               )}
             </Button>
           </form>
@@ -175,9 +212,9 @@ const LoginSection = () => {
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link to="/signup" className="font-semibold text-primary hover:underline transition-all">
-            Sign up
+          Already have an account?{' '}
+          <Link to="/login" className="font-semibold text-primary hover:underline transition-all">
+            Sign in
           </Link>
         </p>
       </div>
@@ -185,4 +222,4 @@ const LoginSection = () => {
   )
 }
 
-export default LoginSection
+export default SignupSection
