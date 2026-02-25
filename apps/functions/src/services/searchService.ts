@@ -313,18 +313,33 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
     no2: number
     o3: number
     updatedAt: string
+    skipAi?: boolean
   }): Promise<CitySearchResult> {
     const aqi = pm25ToAqi(raw.pm25)
     const category = aqiToCategory(aqi)
-    const aiContent = await this.generateContent(
-      raw.locationLabel,
-      raw.type,
-      aqi,
-      category,
-      raw.pm25,
-      raw.pm10,
-      raw.no2
-    )
+
+    let aiContent: {
+      visitorGuidelines: SearchGuidelineItem[]
+      preventionTips: SearchGuidelineItem[]
+      improvementActions: SearchGuidelineItem[]
+    } = {
+      visitorGuidelines: [],
+      preventionTips: [],
+      improvementActions: [],
+    }
+
+    if (!raw.skipAi) {
+      aiContent = await this.generateContent(
+        raw.locationLabel,
+        raw.type,
+        aqi,
+        category,
+        raw.pm25,
+        raw.pm10,
+        raw.no2
+      )
+    }
+
     return {
       type: raw.type,
       id: raw.name.toLowerCase().replace(/\s+/g, '-'),
@@ -346,7 +361,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  async lookupCity(searchQuery: string): Promise<CitySearchResult | null> {
+  async lookupCity(searchQuery: string, skipAi: boolean = false): Promise<CitySearchResult | null> {
     // Step 1: BigQuery city match
     const cityRow = await this.bqClient.fetchCityData(searchQuery)
     if (cityRow) {
@@ -361,6 +376,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
         no2: cityRow.no2 ?? 0,
         o3: cityRow.ozone ?? 0,
         updatedAt: cityRow.timestamp,
+        skipAi,
       })
     }
 
@@ -378,6 +394,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
         no2: liveRow.no2 ?? 0,
         o3: liveRow.o3 ?? 0,
         updatedAt: liveRow.timestamp,
+        skipAi,
       })
     }
 
@@ -401,6 +418,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
         no2: countryRow?.no2 ?? 0,
         o3: countryRow?.ozone ?? 0,
         updatedAt: countryRow?.timestamp ?? adpcRow!.timestamp,
+        skipAi,
       })
     }
 

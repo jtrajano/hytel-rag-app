@@ -1,8 +1,6 @@
 import { z } from 'zod'
 import { router, protectedProcedure } from '../trpc.js'
 import { SearchService } from '../../services/searchService.js'
-import { OpenMeteoClient } from '../../services/openMeteoClient.js'
-import { pm25ToAqi, aqiToCategory } from '../../utils/aqiUtils.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 
@@ -72,24 +70,31 @@ export const searchRouter = router({
     .output(z.array(RegionAQIDataSchema))
     .query(async ({ input }) => {
       if (input.length === 0) return []
-      const client = new OpenMeteoClient()
-      const results = await client.getAirQualityBatch(
-        input.map(c => ({ latitude: c.latitude, longitude: c.longitude }))
+
+      const svc = new SearchService(PROJECT_ID)
+
+      // Fetch all cities in parallel using lookupCity (skipping Vertex AI generation)
+      const results = await Promise.all(
+        input.map(async city => {
+          try {
+            const res = await svc.lookupCity(city.name, true) // run with skipAi = true
+            if (!res) return null
+
+            return {
+              id: city.id,
+              name: city.name, // Keep requested region name
+              aqi: res.pollution.aqi,
+              category: res.pollution.category,
+            }
+          } catch (error) {
+            console.error(`Failed to lookup city ${city.name} during batch map load:`, error)
+            return null
+          }
+        })
       )
 
-      return results.map((res, i) => {
-        const pm25Values = res.hourly?.pm2_5 ?? []
-        const currentPm25 = pm25Values.find(v => v !== null) ?? 0
-        const aqi = pm25ToAqi(currentPm25)
-        const category = aqiToCategory(aqi)
-
-        return {
-          id: input[i].id,
-          name: input[i].name,
-          aqi,
-          category,
-        }
-      })
+      // Filter out any cities that completely failed to resolve
+      return results.filter(res => res !== null) as z.infer<typeof RegionAQIDataSchema>[]
     }),
 
   reverseGeocode: protectedProcedure

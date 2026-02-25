@@ -218,6 +218,136 @@
     },
     {
       "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [121.0553, 14.5547] },
+      "properties": { "name": "Makati", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [121.0509, 14.5378] },
+      "properties": { "name": "Taguig", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [120.596, 16.4023] },
+      "properties": { "name": "Baguio", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [120.3209, 15.0286] },
+      "properties": { "name": "San Fernando", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [121.1444, 14.2831] },
+      "properties": { "name": "Santa Rosa", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [120.963, 14.4162] },
+      "properties": { "name": "Bacoor", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [123.1841, 13.6218] },
+      "properties": { "name": "Naga", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [123.734, 13.1387] },
+      "properties": { "name": "Legazpi", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [122.5644, 10.7202] },
+      "properties": { "name": "Iloilo City", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [122.95, 10.6698] },
+      "properties": { "name": "Bacolod", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [123.3082, 9.3068] },
+      "properties": { "name": "Dumaguete", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [123.8643, 10.7584] },
+      "properties": { "name": "Bogo", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [123.9452, 10.3242] },
+      "properties": { "name": "Mandaue", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [123.9482, 10.3115] },
+      "properties": { "name": "Lapu-Lapu", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [123.85, 9.6481] },
+      "properties": { "name": "Tagbilaran", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [124.6496, 11.243] },
+      "properties": { "name": "Tacloban", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [124.6191, 12.062] },
+      "properties": { "name": "Calbayog", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [122.0683, 6.9175] },
+      "properties": { "name": "Zamboanga", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [124.6477, 8.4818] },
+      "properties": { "name": "Cagayan de Oro", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [124.2372, 8.229] },
+      "properties": { "name": "Iligan", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [125.1764, 6.1118] },
+      "properties": { "name": "General Santos", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [124.8488, 7.2144] },
+      "properties": { "name": "Kidapawan", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [125.5398, 8.9487] },
+      "properties": { "name": "Butuan", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [125.1278, 8.2435] },
+      "properties": { "name": "Malaybalay", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [126.3458, 8.1884] },
+      "properties": { "name": "Bislig", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [126.0445, 7.3592] },
+      "properties": { "name": "Mati", "country": "Philippines" }
+    },
+    {
+      "type": "Feature",
       "geometry": { "type": "Point", "coordinates": [103.8198, 1.3521] },
       "properties": { "name": "Singapore", "country": "Singapore" }
     },
