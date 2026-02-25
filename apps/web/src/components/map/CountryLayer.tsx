@@ -166,7 +166,7 @@ export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
         padding:2px 0;
       ">
         <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Country</div>
-        <div style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:10px;">${region.name}</div>
+        <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:10px;">${region.name}</div>
         <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Air Quality Index</div>
           <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:6px;">

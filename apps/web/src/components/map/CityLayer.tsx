@@ -110,7 +110,7 @@ export function CityLayer({ cities, pane }: CityLayerProps) {
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
                   City
                 </div>
-                <div className="text-lg font-bold text-slate-900 mb-2">{city.name}</div>
+                <div className="text-lg font-bold text-white mb-2">{city.name}</div>
                 <div className="border-t border-slate-100 pt-2">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                     Air Quality Index
