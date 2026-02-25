@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { OpenMeteoClient } from './openMeteoClient'
+import { OpenMeteoClient, _clearGeocodeCache } from './openMeteoClient'
 
 describe('OpenMeteoClient', () => {
   const fetchMock = vi.fn<typeof fetch>()
 
   beforeEach(() => {
     fetchMock.mockReset()
+    _clearGeocodeCache()
   })
 
   it('geocodes a city successfully', async () => {

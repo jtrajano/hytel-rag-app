@@ -44,6 +44,11 @@ export interface AirQualityWithLocation {
 // same city name within a single request chain.
 const geocodeCache = new Map<string, GeocodingResult | null>()
 
+/** Clears the module-level geocode cache. Use only in tests. */
+export function _clearGeocodeCache(): void {
+  geocodeCache.clear()
+}
+
 // --- Client ---
 
 export interface OpenMeteoClientOptions {
