@@ -3,6 +3,12 @@ import { renderHook } from '@testing-library/react'
 import { useQuery } from '@tanstack/react-query'
 import { useCityAQI } from './useCityAQI'
 
+type QueryOptionsShape = {
+  queryKey: unknown[]
+  staleTime: number
+  queryFn: () => Promise<unknown>
+}
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(options => options),
 }))
@@ -58,7 +64,7 @@ describe('useCityAQI', () => {
 
     renderHook(() => useCityAQI())
 
-    const queryOptions = vi.mocked(useQuery).mock.calls[0][0]
+    const queryOptions = vi.mocked(useQuery).mock.calls[0][0] as QueryOptionsShape
     expect(queryOptions.queryKey).toEqual(['map', 'cities'])
     expect(queryOptions.staleTime).toBe(10 * 60 * 1000)
 
