@@ -1,5 +1,6 @@
 import { useQueries } from '@tanstack/react-query'
 import { trpc } from '@/lib/trpc'
+import { useAuth } from '@/hooks/useAuth'
 import type { RegionAQIData } from '@/utils/mapTypes'
 
 /**
@@ -38,6 +39,7 @@ interface UseCountryAQIResult {
  * the same pattern but queries by city name and returns city-keyed data.
  */
 export function useCountryAQI(): UseCountryAQIResult {
+  const { user, loading } = useAuth()
   const utils = trpc.useUtils()
 
   const queries = useQueries({
@@ -45,7 +47,8 @@ export function useCountryAQI(): UseCountryAQIResult {
       queryKey: ['search', 'byCity', { query: country }],
       queryFn: () => utils.search.byCity.fetch({ query: country }),
       staleTime: 5 * 60 * 1000,
-      retry: 1,
+      retry: false,
+      enabled: !loading && !!user,
     })),
   })
 

@@ -50,6 +50,8 @@ export interface CitySearchResult {
 // ── Constants ──────────────────────────────────────────────────────────────────
 const GEMINI_MODEL = env.vertex.geminiModel
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 /** Country name (lowercase) → flag emoji */
 const COUNTRY_FLAG: Record<string, string> = {
   philippines: '🇵🇭',
@@ -75,6 +77,20 @@ const COUNTRY_FLAG: Record<string, string> = {
   bangladesh: '🇧🇩',
   nepal: '🇳🇵',
   'sri lanka': '🇱🇰',
+}
+
+/**
+ * Resolves a country string (full name or ISO-2 code) to a flag emoji.
+ * Falls back to 🌍 if no match is found.
+ */
+function resolveFlagEmoji(country: string): string {
+  const lower = country.toLowerCase()
+  if (COUNTRY_FLAG[lower]) return COUNTRY_FLAG[lower]
+  const upper = country.toUpperCase()
+  if (/^[A-Z]{2}$/.test(upper)) {
+    return upper.replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397))
+  }
+  return '🌍'
 }
 
 // ── Fallback content ───────────────────────────────────────────────────────────
@@ -138,6 +154,7 @@ export class SearchService {
   private readonly vertexai: VertexAI
   private readonly openaq: OpenAQClient | null
   private readonly bqClient: BQClient
+  private readonly openMeteo: OpenMeteoClient
 
   constructor(projectId: string) {
     this.projectId = projectId
@@ -146,34 +163,67 @@ export class SearchService {
     const apiKey = process.env.OPENAQ_API_KEY
     this.openaq = apiKey ? new OpenAQClient({ apiKey }) : null
     this.bqClient = new BQClient(projectId)
+    this.openMeteo = new OpenMeteoClient()
   }
 
-  // ── Step 2: OpenAQ live API — wider global city coverage ──────────────────
-  // Only attempted when BigQuery city lookup misses. Skipped silently if
-  // OPENAQ_API_KEY is not set (this.openaq will be null).
+  // ── Step 2: Live city data — OpenAQ → Open-Meteo fallback ────────────────
+  // Tries OpenAQ first (requires OPENAQ_API_KEY); falls back to Open-Meteo
+  // forecast data when OpenAQ is unavailable or returns no measurements.
 
-  private async fetchOpenAQCityData(searchQuery: string) {
-    if (!this.openaq) return null
+  private async fetchLiveCityData(searchQuery: string): Promise<{
+    city: string
+    country: string
+    pm25: number | null
+    pm10: number | null
+    no2: number | null
+    o3: number | null
+    timestamp: string
+  } | null> {
+    // Attempt 1: OpenAQ live readings
+    if (this.openaq) {
+      try {
+        const result = await this.openaq.getCurrentByCity(searchQuery)
+        if (result?.measurements?.length) {
+          const get = (param: string) =>
+            result.measurements!.find(m => m.parameter === param)?.value ?? null
+          return {
+            city: result.city ?? result.location ?? searchQuery,
+            country:
+              typeof result.country === 'string'
+                ? result.country
+                : result.country?.code ?? result.country?.name ?? '',
+            pm25: get('pm25'),
+            pm10: get('pm10'),
+            no2: get('no2'),
+            o3: get('o3'),
+            timestamp: result.measurements![0]?.datetime?.utc ?? new Date().toISOString(),
+          }
+        }
+      } catch {
+        // fall through to Open-Meteo
+      }
+    }
+
+    // Attempt 2: Open-Meteo air quality forecast
     try {
-      const result = await this.openaq.getCurrentByCity(searchQuery)
-      if (!result?.measurements?.length) return null
-      const get = (param: string) =>
-        result.measurements!.find(m => m.parameter === param)?.value ?? null
-      return {
-        city: result.city ?? result.location ?? searchQuery,
-        country:
-          typeof result.country === 'string'
-            ? result.country
-            : result.country?.code ?? result.country?.name ?? '',
-        pm25: get('pm25'),
-        pm10: get('pm10'),
-        no2: get('no2'),
-        o3: get('o3'),
-        timestamp: result.measurements![0]?.datetime?.utc ?? new Date().toISOString(),
+      const omResult = await this.openMeteo.getAirQualityByLocation(searchQuery)
+      if (omResult) {
+        const { location, forecast } = omResult
+        return {
+          city: location.name,
+          country: location.country ?? '',
+          pm25: forecast.hourly?.pm2_5?.find((v: number | null) => v !== null) ?? null,
+          pm10: forecast.hourly?.pm10?.find((v: number | null) => v !== null) ?? null,
+          no2: forecast.hourly?.nitrogen_dioxide?.find((v: number | null) => v !== null) ?? null,
+          o3: forecast.hourly?.ozone?.find((v: number | null) => v !== null) ?? null,
+          timestamp: forecast.hourly?.time[0] ?? new Date().toISOString(),
+        }
       }
     } catch {
-      return null
+      // fall through
     }
+
+    return null
   }
 
   // ── Step 3: ADPC satellite PM2.5 country lookup ────────────────────────────
@@ -250,131 +300,85 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
     }
   }
 
+  // ── Result assembly ────────────────────────────────────────────────────────
+
+  private async buildCityResult(raw: {
+    type: 'city' | 'country'
+    name: string
+    country: string
+    locationLabel: string
+    flagEmoji: string
+    pm25: number
+    pm10: number
+    no2: number
+    o3: number
+    updatedAt: string
+  }): Promise<CitySearchResult> {
+    const aqi = pm25ToAqi(raw.pm25)
+    const category = aqiToCategory(aqi)
+    const aiContent = await this.generateContent(
+      raw.locationLabel,
+      raw.type,
+      aqi,
+      category,
+      raw.pm25,
+      raw.pm10,
+      raw.no2
+    )
+    return {
+      type: raw.type,
+      id: raw.name.toLowerCase().replace(/\s+/g, '-'),
+      name: raw.name,
+      country: raw.country,
+      flagEmoji: raw.flagEmoji,
+      pollution: {
+        aqi,
+        category,
+        pm25: raw.pm25,
+        pm10: raw.pm10,
+        o3: raw.o3,
+        no2: raw.no2,
+        updatedAt: raw.updatedAt,
+      },
+      ...aiContent,
+    }
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────
 
   async lookupCity(searchQuery: string): Promise<CitySearchResult | null> {
-    // Try city match first
+    // Step 1: BigQuery city match
     const cityRow = await this.bqClient.fetchCityData(searchQuery)
     if (cityRow) {
-      const pm25 = cityRow.pm25 ?? 0
-      const pm10 = cityRow.pm10 ?? 0
-      const no2 = cityRow.no2 ?? 0
-      const o3 = cityRow.ozone ?? 0
-      const aqi = pm25ToAqi(pm25)
-      const category = aqiToCategory(aqi)
-      const flagEmoji = COUNTRY_FLAG[cityRow.country.toLowerCase()] ?? '🌍'
-
-      const aiContent = await this.generateContent(
-        `${cityRow.city}, ${cityRow.country}`,
-        'city',
-        aqi,
-        category,
-        pm25,
-        pm10,
-        no2
-      )
-
-      return {
+      return this.buildCityResult({
         type: 'city',
-        id: cityRow.city.toLowerCase().replace(/\s+/g, '-'),
         name: cityRow.city,
         country: cityRow.country,
-        flagEmoji,
-        pollution: { aqi, category, pm25, pm10, o3, no2, updatedAt: cityRow.timestamp },
-        ...aiContent,
-      }
+        locationLabel: `${cityRow.city}, ${cityRow.country}`,
+        flagEmoji: resolveFlagEmoji(cityRow.country),
+        pm25: cityRow.pm25 ?? 0,
+        pm10: cityRow.pm10 ?? 0,
+        no2: cityRow.no2 ?? 0,
+        o3: cityRow.ozone ?? 0,
+        updatedAt: cityRow.timestamp,
+      })
     }
 
-    // Step 2: OpenAQ live API — wider global city coverage
-    const openaqRow = await this.fetchOpenAQCityData(searchQuery)
-    if (openaqRow) {
-      const pm25 = openaqRow.pm25 ?? 0
-      const pm10 = openaqRow.pm10 ?? 0
-      const no2 = openaqRow.no2 ?? 0
-      const o3 = openaqRow.o3 ?? 0
-      const aqi = pm25ToAqi(pm25)
-      const category = aqiToCategory(aqi)
-      // OpenAQ returns ISO 2-letter codes (e.g. "PH") — flag map uses full names,
-      // so we try generating the flag from the code if it's missing from the map.
-      const code = openaqRow.country.toUpperCase()
-      const flagEmoji =
-        COUNTRY_FLAG[openaqRow.country.toLowerCase()] ??
-        (/^[A-Z]{2}$/.test(code)
-          ? code.replace(/./g, (char: string) => String.fromCodePoint(char.charCodeAt(0) + 127397))
-          : '🌍')
-
-      const aiContent = await this.generateContent(
-        openaqRow.country ? `${openaqRow.city}, ${openaqRow.country}` : openaqRow.city,
-        'city',
-        aqi,
-        category,
-        pm25,
-        pm10,
-        no2
-      )
-
-      return {
+    // Step 2: Live city data — OpenAQ with Open-Meteo fallback
+    const liveRow = await this.fetchLiveCityData(searchQuery)
+    if (liveRow) {
+      return this.buildCityResult({
         type: 'city',
-        id: openaqRow.city.toLowerCase().replace(/\s+/g, '-'),
-        name: openaqRow.city,
-        country: openaqRow.country,
-        flagEmoji,
-        pollution: { aqi, category, pm25, pm10, o3, no2, updatedAt: openaqRow.timestamp },
-        ...aiContent,
-      }
-    }
-
-    // Step 2.5: Open-Meteo — last resort for global city level data
-    try {
-      const om = new OpenMeteoClient()
-      const omResult = await om.getAirQualityByLocation(searchQuery)
-      if (omResult) {
-        const { location, forecast } = omResult
-        const pm25Values = forecast.hourly?.pm2_5 ?? []
-        const pm10Values = forecast.hourly?.pm10 ?? []
-        const no2Values = forecast.hourly?.nitrogen_dioxide ?? []
-        const o3Values = forecast.hourly?.ozone ?? []
-
-        // Find first non-null values
-        const pm25 = pm25Values.find((v: number | null) => v !== null) ?? 0
-        const pm10 = pm10Values.find((v: number | null) => v !== null) ?? 0
-        const no2 = no2Values.find((v: number | null) => v !== null) ?? 0
-        const o3 = o3Values.find((v: number | null) => v !== null) ?? 0
-
-        const aqi = pm25ToAqi(pm25)
-        const category = aqiToCategory(aqi)
-        const flagEmoji = COUNTRY_FLAG[(location.country ?? '').toLowerCase()] ?? '🌍'
-
-        const aiContent = await this.generateContent(
-          location.country ? `${location.name}, ${location.country}` : location.name,
-          'city',
-          aqi,
-          category,
-          pm25,
-          pm10,
-          no2
-        )
-
-        return {
-          type: 'city',
-          id: location.name.toLowerCase().replace(/\s+/g, '-'),
-          name: location.name,
-          country: location.country ?? '',
-          flagEmoji,
-          pollution: {
-            aqi,
-            category,
-            pm25,
-            pm10,
-            o3,
-            no2,
-            updatedAt: forecast.hourly?.time[0] ?? new Date().toISOString(),
-          },
-          ...aiContent,
-        }
-      }
-    } catch {
-      // Proceed to country fallback if Open-Meteo fails
+        name: liveRow.city,
+        country: liveRow.country,
+        locationLabel: liveRow.country ? `${liveRow.city}, ${liveRow.country}` : liveRow.city,
+        flagEmoji: resolveFlagEmoji(liveRow.country),
+        pm25: liveRow.pm25 ?? 0,
+        pm10: liveRow.pm10 ?? 0,
+        no2: liveRow.no2 ?? 0,
+        o3: liveRow.o3 ?? 0,
+        updatedAt: liveRow.timestamp,
+      })
     }
 
     // Step 3: Fall back to country aggregate — run both tables in parallel
@@ -386,34 +390,18 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
     if (countryRow || adpcRow) {
       const matchedCountry = countryRow?.country ?? adpcRow!.country
       // Prefer ADPC satellite pm25 (more reliable regional data); fall back to global_aqi aggregate
-      const pm25 = adpcRow?.pm25 ?? countryRow?.pm25 ?? 0
-      const pm10 = countryRow?.pm10 ?? 0
-      const no2 = countryRow?.no2 ?? 0
-      const o3 = countryRow?.ozone ?? 0
-      const updatedAt = countryRow?.timestamp ?? adpcRow!.timestamp
-      const aqi = pm25ToAqi(pm25)
-      const category = aqiToCategory(aqi)
-      const flagEmoji = COUNTRY_FLAG[matchedCountry.toLowerCase()] ?? '🌍'
-
-      const aiContent = await this.generateContent(
-        matchedCountry,
-        'country',
-        aqi,
-        category,
-        pm25,
-        pm10,
-        no2
-      )
-
-      return {
+      return this.buildCityResult({
         type: 'country',
-        id: matchedCountry.toLowerCase().replace(/\s+/g, '-'),
         name: matchedCountry,
         country: matchedCountry,
-        flagEmoji,
-        pollution: { aqi, category, pm25, pm10, o3, no2, updatedAt },
-        ...aiContent,
-      }
+        locationLabel: matchedCountry,
+        flagEmoji: resolveFlagEmoji(matchedCountry),
+        pm25: adpcRow?.pm25 ?? countryRow?.pm25 ?? 0,
+        pm10: countryRow?.pm10 ?? 0,
+        no2: countryRow?.no2 ?? 0,
+        o3: countryRow?.ozone ?? 0,
+        updatedAt: countryRow?.timestamp ?? adpcRow!.timestamp,
+      })
     }
 
     return null
