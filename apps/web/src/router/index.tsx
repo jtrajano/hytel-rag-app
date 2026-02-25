@@ -1,8 +1,7 @@
 import { type ReactNode } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { ProtectedRoute } from '@/router/ProtectedRoute'
-// import SplashPage from '@/pages/onboarding/SplashPage'
+// import { ProtectedRoute } from '@/router/ProtectedRoute'
 import HealthProfilePage from '@/pages/onboarding/HealthProfilePage'
 import HomeCityPage from '@/pages/onboarding/HomeCityPage'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
@@ -41,15 +40,15 @@ export const AppRouter = () => {
       />
 
       {/* Protected routes — redirect to /login when not signed in */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/onboarding/profile" element={<HealthProfilePage />} />
-        <Route path="/onboarding/city" element={<HomeCityPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/chat/:sessionId" element={<ChatPage />} />
-        <Route path="/map" element={<PollutionMapPage />} />
-      </Route>
+      {/* <Route element={<ProtectedRoute />}> */}
+      <Route path="/onboarding/profile" element={<HealthProfilePage />} />
+      <Route path="/onboarding/city" element={<HomeCityPage />} />
+      <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/search" element={<SearchPage />} />
+      <Route path="/chat" element={<ChatPage />} />
+      <Route path="/chat/:sessionId" element={<ChatPage />} />
+      <Route path="/map" element={<PollutionMapPage />} />
+      {/* </Route> */}
     </Routes>
   )
 }

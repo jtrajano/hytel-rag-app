@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useSearchPlace } from '@/hooks/useSearchPlace'
 import { useGeolocation } from '@/hooks/useGeolocation'
-import { reverseGeocode } from '@/lib/reverseGeocode'
+import { trpc } from '@/lib/trpc'
 import { SearchResults } from './SearchResults'
 import { POPULAR_SEARCHES } from './searchConstants'
 
@@ -19,6 +19,7 @@ const SearchSection = () => {
 
   const { data, isLoading, isError } = useSearchPlace(submittedQuery)
   const { getLocation } = useGeolocation()
+  const utils = trpc.useUtils()
 
   const handleSearch = () => setSubmittedQuery(inputQuery)
 
@@ -44,15 +45,26 @@ const SearchSection = () => {
       return
     }
 
-    const location = await reverseGeocode(coords.latitude, coords.longitude)
+    let location
+    try {
+      location = await utils.client.search.reverseGeocode.mutate({
+        lat: coords.latitude,
+        lon: coords.longitude,
+      })
+    } catch {
+      setLocationError('Could not determine your location. Try searching manually.')
+      setLocating(false)
+      return
+    }
+
     if (!location || (!location.city && !location.country)) {
       setLocationError('Could not determine your location. Try searching manually.')
       setLocating(false)
       return
     }
 
-    // Prioritize country as requested by user
-    const searchQuery = location.country || location.city || ''
+    // Prioritize city as requested by user
+    const searchQuery = location.city || location.country || ''
 
     if (!searchQuery) {
       setLocationError('Could not determine a valid search query from your location.')

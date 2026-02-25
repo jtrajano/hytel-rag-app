@@ -42,7 +42,7 @@ const AQIOverviewSection = ({ homeCity }: AQIOverviewSectionProps) => {
 
   return (
     <Card className="border-border shadow-sm overflow-hidden">
-      <div className="bg-orange-50 border-b border-orange-100 px-5 pt-5 pb-4">
+      <div className="bg-background border-b border-border px-5 pt-5 pb-4">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">

@@ -9,7 +9,6 @@ import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { useGeolocation } from '@/hooks/useGeolocation'
-import { reverseGeocode } from '@/lib/reverseGeocode'
 import { trpc } from '@/lib/trpc'
 
 import { POPULAR_SEARCHES } from '../search/searchConstants'
@@ -40,6 +39,14 @@ const HomeCitySection = () => {
         setValidationError(
           'Location not found. Please check spelling or try a different city/country.'
         )
+        setIsSaving(false)
+        return
+      }
+
+      // Ensure the location belongs to a supported Southeast Asian country
+      const matchedCountry = result.type === 'country' ? result.name : result.country
+      if (!POPULAR_SEARCHES.includes(matchedCountry)) {
+        setValidationError('This application only supports Southeast Asian countries.')
         setIsSaving(false)
         return
       }
@@ -78,9 +85,16 @@ const HomeCitySection = () => {
         onClick={async () => {
           const coords = await getLocation()
           if (coords) {
-            const location = await reverseGeocode(coords.latitude, coords.longitude)
-            if (location && (location.country || location.city)) {
-              setCityInput(location.country || location.city || '')
+            try {
+              const location = await utils.client.search.reverseGeocode.mutate({
+                lat: coords.latitude,
+                lon: coords.longitude,
+              })
+              if (location && (location.city || location.country)) {
+                setCityInput(location.city || location.country || '')
+              }
+            } catch (error) {
+              console.error('Failed to resolve location:', error)
             }
           }
         }}

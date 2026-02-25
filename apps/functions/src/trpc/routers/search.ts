@@ -91,4 +91,27 @@ export const searchRouter = router({
         }
       })
     }),
+
+  reverseGeocode: protectedProcedure
+    .input(z.object({ lat: z.number(), lon: z.number() }))
+    .output(z.object({ city: z.string().nullable(), country: z.string().nullable() }))
+    .mutation(async ({ input }) => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${input.lat}&lon=${input.lon}&zoom=10&email=fernando.ordiales@hytel.io`
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
+        if (!res.ok) return { city: null, country: null }
+
+        const data = await res.json()
+        const addr = data.address
+        if (!addr) return { city: null, country: null }
+
+        const city = addr.city ?? addr.town ?? addr.village ?? addr.county ?? null
+        const country = addr.country ?? null
+
+        return { city, country }
+      } catch (error) {
+        console.error('Reverse geocode error:', error)
+        return { city: null, country: null }
+      }
+    }),
 })
