@@ -46,6 +46,12 @@
     "syncpack": "^13.0.0",
     "turbo": "^2.7.5"
   },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.27.3",
+      "rollup": "^4.22.4"
+    }
+  },
   "packageManager": "pnpm@8.15.6",
   "engines": {
     "node": ">=20"

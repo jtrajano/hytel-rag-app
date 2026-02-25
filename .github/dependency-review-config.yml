@@ -1,0 +1,14 @@
+# Dependency Review Configuration
+# Docs: https://github.com/actions/dependency-review-action#configuration-options
+
+fail-on-severity: high
+
+# Allow internal workspace packages that are not published to npm
+# and cannot be looked up in the GitHub Advisory Database
+allow-packages:
+  - pkg:npm/%40repo/config
+  - pkg:npm/%40repo/eslint-config
+  - pkg:npm/%40repo/shared
+  - pkg:npm/%40repo/ui
+  - pkg:npm/%40repo/typescript-config
+  - pkg:npm/%40repo/functions
