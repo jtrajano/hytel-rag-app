@@ -38,3 +38,19 @@ export function aqiToCategory(aqi: number): AqiCategory {
   if (aqi <= 300) return 'Very Unhealthy'
   return 'Hazardous'
 }
+
+export function findClosestHourlyIndex(times: string[], target: Date): number {
+  const targetMs = target.getTime()
+  let best = -1
+  let bestDelta = Number.POSITIVE_INFINITY
+  for (let i = 0; i < times.length; i++) {
+    const ts = Date.parse(times[i])
+    if (Number.isNaN(ts)) continue
+    const delta = Math.abs(ts - targetMs)
+    if (delta < bestDelta) {
+      bestDelta = delta
+      best = i
+    }
+  }
+  return best
+}

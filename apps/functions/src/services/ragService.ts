@@ -13,7 +13,7 @@ import { VertexAI, type Content } from '@google-cloud/vertexai'
 import { GoogleAuth } from 'google-auth-library'
 import { OpenMeteoClient } from './openMeteoClient.js'
 import type { AirQualityWithLocation } from './openMeteoClient.js'
-import { pm25ToAqi, aqiToCategory } from '../utils/aqiUtils.js'
+import { pm25ToAqi, aqiToCategory, findClosestHourlyIndex } from '../utils/aqiUtils.js'
 import { env } from '../config/env.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -48,22 +48,6 @@ const TOP_K = env.rag.topK
 const LOCATION = env.vertex.location
 const EMBEDDING_MODEL = env.vertex.embeddingModel
 const GEMINI_MODEL = env.vertex.geminiModel
-
-function findClosestHourlyIndex(times: string[], target: Date): number {
-  const targetMs = target.getTime()
-  let best = -1
-  let bestDelta = Number.POSITIVE_INFINITY
-  for (let i = 0; i < times.length; i++) {
-    const ts = Date.parse(times[i])
-    if (Number.isNaN(ts)) continue
-    const delta = Math.abs(ts - targetMs)
-    if (delta < bestDelta) {
-      bestDelta = delta
-      best = i
-    }
-  }
-  return best
-}
 
 // ── System prompt (PDD §8.3) ──────────────────────────────────────────────────
 

@@ -6,30 +6,10 @@ import { router, protectedProcedure, publicProcedure } from '../trpc.js'
 import { RAGService } from '../../services/ragService.js'
 import { SearchService } from '../../services/searchService.js'
 import { OpenMeteoClient } from '../../services/openMeteoClient.js'
-import { pm25ToAqi, aqiToCategory } from '../../utils/aqiUtils.js'
+import { pm25ToAqi, aqiToCategory, findClosestHourlyIndex } from '../../utils/aqiUtils.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 const db = new Firestore({ projectId: PROJECT_ID })
-
-function findClosestHourlyIndex(times: string[], target: Date): number {
-  if (!times.length) return -1
-
-  const targetMs = target.getTime()
-  let bestIndex = -1
-  let bestDelta = Number.POSITIVE_INFINITY
-
-  for (let i = 0; i < times.length; i++) {
-    const ts = Date.parse(times[i])
-    if (Number.isNaN(ts)) continue
-    const delta = Math.abs(ts - targetMs)
-    if (delta < bestDelta) {
-      bestDelta = delta
-      bestIndex = i
-    }
-  }
-
-  return bestIndex
-}
 
 export const chatRouter = router({
   currentAqi: publicProcedure
