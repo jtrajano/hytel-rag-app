@@ -49,11 +49,13 @@ const CitySearchResultSchema = z
 
 export const searchRouter = router({
   byCity: protectedProcedure
-    .input(z.object({ query: z.string().min(1).max(100) }))
+    .input(
+      z.object({ query: z.string().min(1).max(100), skipAi: z.boolean().optional().default(false) })
+    )
     .output(CitySearchResultSchema)
     .query(async ({ input }) => {
       const svc = new SearchService(PROJECT_ID)
-      return await svc.lookupCity(input.query)
+      return await svc.lookupCity(input.query, input.skipAi)
     }),
 
   batchCities: protectedProcedure

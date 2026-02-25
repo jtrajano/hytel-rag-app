@@ -14,7 +14,7 @@ import { trpc } from '@/lib/trpc'
 import { POPULAR_SEARCHES } from '../search/searchConstants'
 
 const HomeCitySection = () => {
-  const { user } = useAuth()
+  const { user, setHomeCity } = useAuth()
   const navigate = useNavigate()
   const [cityInput, setCityInput] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -32,8 +32,8 @@ const HomeCitySection = () => {
     setIsSaving(true)
 
     try {
-      // Validate that the location exists in our data sources
-      const result = await utils.search.byCity.fetch({ query: city })
+      // Validate that the location exists in our data sources (skip AI — we only need to confirm it exists)
+      const result = await utils.search.byCity.fetch({ query: city, skipAi: true })
 
       if (!result) {
         setValidationError(
@@ -52,6 +52,7 @@ const HomeCitySection = () => {
       }
 
       await setDoc(doc(db, 'users', user.uid), { homeCity: city }, { merge: true })
+      setHomeCity(city)
       navigate('/dashboard')
     } catch (error) {
       console.error('Error validating location:', error)

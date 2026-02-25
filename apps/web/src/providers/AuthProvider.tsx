@@ -8,12 +8,15 @@ import {
   getAdditionalUserInfo,
   type User,
 } from 'firebase/auth'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db, googleProvider } from '@/lib/firebase'
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
+  homeCity: string | null
+  homeCityLoading: boolean
+  setHomeCity: (city: string) => void
   signInRedirect: string | null
   signInWithGoogle: () => Promise<void>
   signInWithEmail: (email: string, pass: string) => Promise<void>
@@ -26,12 +29,24 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [homeCity, setHomeCity] = useState<string | null>(null)
+  const [homeCityLoading, setHomeCityLoading] = useState(false)
   const [signInRedirect, setSignInRedirect] = useState<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, firebaseUser => {
       setUser(firebaseUser)
       setLoading(false)
+      if (firebaseUser) {
+        setHomeCityLoading(true)
+        getDoc(doc(db, 'users', firebaseUser.uid))
+          .then(snap => setHomeCity((snap.data()?.homeCity as string | null) ?? null))
+          .catch(() => setHomeCity(null))
+          .finally(() => setHomeCityLoading(false))
+      } else {
+        setHomeCity(null)
+        setHomeCityLoading(false)
+      }
     })
     return unsubscribe
   }, [])
@@ -118,6 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
+        homeCity,
+        homeCityLoading,
+        setHomeCity,
         signInRedirect,
         signInWithGoogle,
         signInWithEmail,
