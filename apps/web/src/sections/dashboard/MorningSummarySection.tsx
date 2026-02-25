@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Sunrise, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Card, CardContent } from '@/components/ui/card'
@@ -115,18 +115,28 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
           <div className="text-sm leading-relaxed text-foreground">
             <ReactMarkdown
               components={{
-                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                ul: ({ children }) => (
+                p: ({ children }: { children?: ReactNode }) => (
+                  <p className="mb-2 last:mb-0">{children}</p>
+                ),
+                ul: ({ children }: { children?: ReactNode }) => (
                   <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>
                 ),
-                ol: ({ children }) => (
+                ol: ({ children }: { children?: ReactNode }) => (
                   <ol className="list-decimal list-inside mb-2 space-y-0.5">{children}</ol>
                 ),
-                li: ({ children }) => <li>{children}</li>,
-                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                h1: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
-                h2: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
-                h3: ({ children }) => <p className="font-medium mb-1">{children}</p>,
+                li: ({ children }: { children?: ReactNode }) => <li>{children}</li>,
+                strong: ({ children }: { children?: ReactNode }) => (
+                  <strong className="font-semibold">{children}</strong>
+                ),
+                h1: ({ children }: { children?: ReactNode }) => (
+                  <p className="font-semibold mb-1">{children}</p>
+                ),
+                h2: ({ children }: { children?: ReactNode }) => (
+                  <p className="font-semibold mb-1">{children}</p>
+                ),
+                h3: ({ children }: { children?: ReactNode }) => (
+                  <p className="font-medium mb-1">{children}</p>
+                ),
               }}
             >
               {answer}
