@@ -179,6 +179,25 @@ export class SearchService {
     o3: number | null
     timestamp: string
   } | null> {
+    // Attempt 2: Open-Meteo air quality forecast
+    try {
+      const omResult = await this.openMeteo.getAirQualityByLocation(searchQuery)
+      if (omResult) {
+        const { location, forecast } = omResult
+        return {
+          city: location.name,
+          country: location.country ?? '',
+          pm25: forecast.hourly?.pm2_5?.find((v: number | null) => v !== null) ?? null,
+          pm10: forecast.hourly?.pm10?.find((v: number | null) => v !== null) ?? null,
+          no2: forecast.hourly?.nitrogen_dioxide?.find((v: number | null) => v !== null) ?? null,
+          o3: forecast.hourly?.ozone?.find((v: number | null) => v !== null) ?? null,
+          timestamp: forecast.hourly?.time[0] ?? new Date().toISOString(),
+        }
+      }
+    } catch {
+      // fall through
+    }
+
     // Attempt 1: OpenAQ live readings
     if (this.openaq) {
       try {
@@ -202,25 +221,6 @@ export class SearchService {
       } catch {
         // fall through to Open-Meteo
       }
-    }
-
-    // Attempt 2: Open-Meteo air quality forecast
-    try {
-      const omResult = await this.openMeteo.getAirQualityByLocation(searchQuery)
-      if (omResult) {
-        const { location, forecast } = omResult
-        return {
-          city: location.name,
-          country: location.country ?? '',
-          pm25: forecast.hourly?.pm2_5?.find((v: number | null) => v !== null) ?? null,
-          pm10: forecast.hourly?.pm10?.find((v: number | null) => v !== null) ?? null,
-          no2: forecast.hourly?.nitrogen_dioxide?.find((v: number | null) => v !== null) ?? null,
-          o3: forecast.hourly?.ozone?.find((v: number | null) => v !== null) ?? null,
-          timestamp: forecast.hourly?.time[0] ?? new Date().toISOString(),
-        }
-      }
-    } catch {
-      // fall through
     }
 
     return null
