@@ -24,7 +24,7 @@ const COUNTRY_TO_CAPITAL: Record<string, string> = {
   'Timor-Leste': 'Dili',
 }
 
-const DashboardPage = () => {
+        const DashboardPage = () => {
   const { user, loading: authLoading, homeCityLoading, signOut, homeCity } = useAuth()
 
   const aqiCity = (homeCity && COUNTRY_TO_CAPITAL[homeCity]) ?? homeCity ?? ''
