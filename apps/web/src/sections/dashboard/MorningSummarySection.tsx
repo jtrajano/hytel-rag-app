@@ -8,23 +8,32 @@ import { useAuth } from '@/hooks/useAuth'
 
 const CACHE_TTL_MS = 60 * 60 * 1000
 
-function getCached(key: string): string | null {
+function getCached(key: string, city: string): string | null {
   try {
     const raw = localStorage.getItem(`morning_briefing:${key}`)
     if (!raw) return null
-    const { answer, cachedAt } = JSON.parse(raw) as { answer: string; cachedAt: number }
+    const {
+      answer,
+      cachedAt,
+      city: cachedCity,
+    } = JSON.parse(raw) as {
+      answer: string
+      cachedAt: number
+      city: string
+    }
     if (Date.now() - cachedAt > CACHE_TTL_MS) return null
+    if (cachedCity !== city) return null
     return answer
   } catch {
     return null
   }
 }
 
-function setCached(key: string, answer: string) {
+function setCached(key: string, answer: string, city: string) {
   try {
     localStorage.setItem(
       `morning_briefing:${key}`,
-      JSON.stringify({ answer, cachedAt: Date.now() })
+      JSON.stringify({ answer, cachedAt: Date.now(), city })
     )
   } catch {
     // ignores storage quota errors.
@@ -67,7 +76,7 @@ const MorningSummarySection = ({ homeCity, currentAqi }: MorningSummarySectionPr
       return
     }
 
-    const cached = getCached(cacheKey)
+    const cached = getCached(cacheKey, homeCity)
     if (cached) {
       setCachedAnswer(cached)
     }
@@ -79,7 +88,13 @@ const MorningSummarySection = ({ homeCity, currentAqi }: MorningSummarySectionPr
     : `What is the current air quality in ${homeCity ?? 'my city'}? Give me the current AQI, PM2.5 levels, health status, and today's forecast.`
 
   const briefingQuery = trpc.chat.askBriefing.useQuery(
-    { question, city: homeCity ?? undefined },
+    {
+      question,
+      city: homeCity ?? undefined,
+      currentAqi: currentAqi
+        ? { aqi: currentAqi.aqi, quality: currentAqi.quality, updatedAt: currentAqi.updatedAt }
+        : undefined,
+    },
     {
       enabled: cacheChecked && !loading && !!user && !!homeCity && !cachedAnswer,
       refetchOnWindowFocus: false,
@@ -89,7 +104,7 @@ const MorningSummarySection = ({ homeCity, currentAqi }: MorningSummarySectionPr
 
   useEffect(() => {
     if (!homeCity || !briefingQuery.data?.answer) return
-    setCached(cacheKey, briefingQuery.data.answer)
+    setCached(cacheKey, briefingQuery.data.answer, homeCity)
   }, [briefingQuery.data?.answer, cacheKey, homeCity])
 
   const answer = cachedAnswer ?? briefingQuery.data?.answer
@@ -105,7 +120,7 @@ const MorningSummarySection = ({ homeCity, currentAqi }: MorningSummarySectionPr
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Morning Health Briefing
+              Health Briefing
             </p>
             <p className="text-xs text-muted-foreground">
               {homeCity ?? 'Set your location'} - {today}

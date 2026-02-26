@@ -25,7 +25,7 @@ const COUNTRY_TO_CAPITAL: Record<string, string> = {
 }
 
 const DashboardPage = () => {
-  const { user, loading: authLoading, signOut, homeCity } = useAuth()
+  const { user, loading: authLoading, homeCityLoading, signOut, homeCity } = useAuth()
 
   const aqiCity = (homeCity && COUNTRY_TO_CAPITAL[homeCity]) ?? homeCity ?? ''
 
@@ -36,7 +36,8 @@ const DashboardPage = () => {
   } = trpc.chat.currentAqi.useQuery(
     { city: aqiCity },
     {
-      enabled: !authLoading && !!user && !!homeCity,
+      // wait for both firebase auth AND the firestore homeCity fetch to finish.
+      enabled: !authLoading && !homeCityLoading && !!user && !!homeCity,
       staleTime: TEN_MINUTES_MS,
       gcTime: TEN_MINUTES_MS,
       refetchInterval: TEN_MINUTES_MS,
