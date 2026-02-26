@@ -2,37 +2,30 @@ import { Clock, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { trpc } from '@/lib/trpc'
 import { AQI_SCALE_SEGMENTS } from '@/sections/search/searchConstants'
 import { getAqiBadgeClass, getAqiScaleIndex, getAqiTextColor } from '@/sections/search/searchUtils'
-import { useAuth } from '@/hooks/useAuth'
 
-const TEN_MINUTES_MS = 10 * 60 * 1000
-
-interface AQIOverviewSectionProps {
-  homeCity?: string | null
+interface CurrentAqi {
+  city: string
+  aqi: number
+  quality: string
+  updatedAt: string
 }
 
-const AQIOverviewSection = ({ homeCity }: AQIOverviewSectionProps) => {
-  const city = homeCity ?? ''
-  const { user, loading } = useAuth()
-  const { data, isLoading, isError } = trpc.chat.currentAqi.useQuery(
-    { city },
-    {
-      enabled: !loading && !!user && !!homeCity,
-      staleTime: TEN_MINUTES_MS,
-      gcTime: TEN_MINUTES_MS,
-      refetchInterval: TEN_MINUTES_MS,
-    }
-  )
+interface AQIOverviewSectionProps {
+  currentAqi?: CurrentAqi
+  isLoading?: boolean
+  isError?: boolean
+}
 
-  const aqi = data?.aqi ?? 0
-  const quality = data?.quality ?? 'Unavailable'
+const AQIOverviewSection = ({ currentAqi, isLoading, isError }: AQIOverviewSectionProps) => {
+  const aqi = currentAqi?.aqi ?? 0
+  const quality = currentAqi?.quality ?? 'Unavailable'
   const aqiTextColor = getAqiTextColor(aqi)
   const aqiBadgeClass = getAqiBadgeClass(aqi)
   const activeSegment = getAqiScaleIndex(aqi)
-  const updatedLabel = data?.updatedAt
-    ? new Date(data.updatedAt).toLocaleString('en-US', {
+  const updatedLabel = currentAqi?.updatedAt
+    ? new Date(currentAqi.updatedAt).toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
@@ -96,7 +89,7 @@ const AQIOverviewSection = ({ homeCity }: AQIOverviewSectionProps) => {
           {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
           <span>
             {isError
-              ? 'Unable to load OpenAQ data right now.'
+              ? 'Unable to load air quality data right now.'
               : `Last updated: ${updatedLabel ?? '--'}`}
           </span>
         </div>

@@ -9,9 +9,9 @@ import { useAuth } from '@/hooks/useAuth'
 
 const CACHE_TTL_MS = 60 * 60 * 1000
 
-function getCached(city: string): string | null {
+function getCached(key: string): string | null {
   try {
-    const raw = localStorage.getItem(`morning_briefing:${city}`)
+    const raw = localStorage.getItem(`morning_briefing:${key}`)
     if (!raw) return null
     const { answer, cachedAt } = JSON.parse(raw) as { answer: string; cachedAt: number }
     if (Date.now() - cachedAt > CACHE_TTL_MS) return null
@@ -21,10 +21,10 @@ function getCached(city: string): string | null {
   }
 }
 
-function setCached(city: string, answer: string) {
+function setCached(key: string, answer: string) {
   try {
     localStorage.setItem(
-      `morning_briefing:${city}`,
+      `morning_briefing:${key}`,
       JSON.stringify({ answer, cachedAt: Date.now() })
     )
   } catch {
@@ -32,11 +32,19 @@ function setCached(city: string, answer: string) {
   }
 }
 
-interface MorningSummarySectionProps {
-  homeCity?: string | null
+interface CurrentAqi {
+  city: string
+  aqi: number
+  quality: string
+  updatedAt: string
 }
 
-const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
+interface MorningSummarySectionProps {
+  homeCity?: string | null
+  currentAqi?: CurrentAqi
+}
+
+const MorningSummarySection = ({ homeCity, currentAqi }: MorningSummarySectionProps) => {
   const { user, loading } = useAuth()
   const [cachedAnswer, setCachedAnswer] = useState<string | null>(null)
   const [cacheChecked, setCacheChecked] = useState(false)
@@ -48,6 +56,9 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
     year: 'numeric',
   })
 
+  // cache key includes aqi so a new aqi value busts the cached briefing.
+  const cacheKey = homeCity && currentAqi ? `${homeCity}:${currentAqi.aqi}` : homeCity ?? ''
+
   useEffect(() => {
     setCacheChecked(false)
     setCachedAnswer(null)
@@ -57,18 +68,19 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
       return
     }
 
-    const cached = getCached(homeCity)
+    const cached = getCached(cacheKey)
     if (cached) {
       setCachedAnswer(cached)
     }
     setCacheChecked(true)
-  }, [homeCity])
+  }, [cacheKey, homeCity])
+
+  const question = currentAqi
+    ? `The current air quality in ${homeCity} is AQI ${currentAqi.aqi} (${currentAqi.quality}). Give me health recommendations for this level and today's forecast.`
+    : `What is the current air quality in ${homeCity ?? 'my city'}? Give me the current AQI, PM2.5 levels, health status, and today's forecast.`
 
   const briefingQuery = trpc.chat.askBriefing.useQuery(
-    {
-      question: `Give me a morning air quality briefing for ${homeCity ?? 'my city'}. Include the current air quality rating and PM2.5 levels, health recommendations especially for sensitive groups, and the short-term forecast for today.`,
-      city: homeCity ?? undefined,
-    },
+    { question, city: homeCity ?? undefined },
     {
       enabled: cacheChecked && !loading && !!user && !!homeCity && !cachedAnswer,
       refetchOnWindowFocus: false,
@@ -78,8 +90,8 @@ const MorningSummarySection = ({ homeCity }: MorningSummarySectionProps) => {
 
   useEffect(() => {
     if (!homeCity || !briefingQuery.data?.answer) return
-    setCached(homeCity, briefingQuery.data.answer)
-  }, [briefingQuery.data?.answer, homeCity])
+    setCached(cacheKey, briefingQuery.data.answer)
+  }, [briefingQuery.data?.answer, cacheKey, homeCity])
 
   const answer = cachedAnswer ?? briefingQuery.data?.answer
   const isPending = briefingQuery.isPending

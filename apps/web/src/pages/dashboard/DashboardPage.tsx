@@ -6,9 +6,29 @@ import MorningSummarySection from '@/sections/dashboard/MorningSummarySection'
 import AQIOverviewSection from '@/sections/dashboard/AQIOverviewSection'
 import ForecastSection from '@/sections/dashboard/ForecastSection'
 import { useAuth } from '@/hooks/useAuth'
+import { trpc } from '@/lib/trpc'
+
+const TEN_MINUTES_MS = 10 * 60 * 1000
 
 const DashboardPage = () => {
-  const { user, signOut, homeCity } = useAuth()
+  const { user, loading: authLoading, signOut, homeCity } = useAuth()
+
+  // temporary: map country-level locations to their capital city for AQI readings.
+  const aqiCity = homeCity?.toLowerCase() === 'philippines' ? 'Manila' : homeCity
+
+  const {
+    data: currentAqi,
+    isLoading: aqiLoading,
+    isError: aqiError,
+  } = trpc.chat.currentAqi.useQuery(
+    { city: aqiCity ?? '' },
+    {
+      enabled: !authLoading && !!user && !!homeCity,
+      staleTime: TEN_MINUTES_MS,
+      gcTime: TEN_MINUTES_MS,
+      refetchInterval: TEN_MINUTES_MS,
+    }
+  )
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -94,9 +114,9 @@ const DashboardPage = () => {
       </nav>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        <MorningSummarySection homeCity={homeCity} />
-        <AQIOverviewSection homeCity={homeCity} />
-        <ForecastSection homeCity={homeCity} />
+        <MorningSummarySection homeCity={aqiCity} currentAqi={currentAqi} />
+        <AQIOverviewSection currentAqi={currentAqi} isLoading={aqiLoading} isError={aqiError} />
+        <ForecastSection homeCity={aqiCity} />
       </main>
     </div>
   )
