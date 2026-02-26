@@ -120,7 +120,7 @@ export class BQClient {
         aerosol_optical_depth: number
       }
       return {
-        city: `${r.country} (National Avg)`, // Placeholder for prompt context
+        city: `${r.country} (National Avg)`,
         country: r.country,
         timestamp: r.timestamp,
         pm25: r.pm25 ?? null,
@@ -130,7 +130,7 @@ export class BQClient {
         co: r.co ?? null,
         ozone: r.ozone ?? null,
         aerosolOpticalDepth: r.aerosol_optical_depth ?? null,
-        aqiClass: null, // Aggregates don't have a single class
+        aqiClass: null, // aggregates do not have a single aqi class.
       }
     } catch {
       return null
@@ -201,10 +201,10 @@ export class BQClient {
   }
 
   // ── Step 3: Country fetch — aggregate AVG across all cities in the country ──
-  // One-directional LIKE: the query must appear inside the country name.
+  // query must be inside the country name.
 
   async fetchCountryData(searchQuery: string) {
-    // Average all city readings for the matching country to produce a national overview
+    // averages city readings for national overview.
     const query = `
         SELECT
           country,
@@ -240,8 +240,7 @@ export class BQClient {
   }
 
   // ── Step 1: City fetch — the query must appear inside the city name ──────────
-  // One-directional LIKE only: avoids false positives where a short city name
-  // happens to be a substring of a country name (e.g. "an" inside "Pakistan").
+  // uses one directional like to avoid false positives.
   async fetchCityData(searchQuery: string) {
     const query = `
       SELECT

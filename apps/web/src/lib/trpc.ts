@@ -48,7 +48,7 @@ async function getAuthHeaders() {
 
 export const trpcClient = trpc.createClient({
   links: [
-    // Stream link always uses POST, preventing GET-on-mutation transport issues.
+    // enforces post requests for streams avoiding transport issues.
     httpBatchStreamLink({
       url,
       headers: getAuthHeaders,

@@ -24,7 +24,7 @@ async function createContext(opts: { req: express.Request }): Promise<TrpcContex
   if (!token) {
     console.warn('Auth missing/invalid', {
       hasAuthorizationHeader: !!authz,
-      authPrefix: authz?.slice(0, 20) ?? null, // do not log full token
+      authPrefix: authz?.slice(0, 20) ?? null,
     })
     return { user: null }
   }
@@ -45,7 +45,7 @@ async function createContext(opts: { req: express.Request }): Promise<TrpcContex
 
 app.use(cors({ origin: true }))
 app.use((req, _res, next) => {
-  // Backward-compat: rewrite legacy GET mutation path to query equivalent.
+  // rewrites legacy get mutation path to query.
   if (req.method === 'GET' && req.path === '/trpc/chat.ask') {
     const suffix = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''
     req.url = `/trpc/chat.askBriefing${suffix}`

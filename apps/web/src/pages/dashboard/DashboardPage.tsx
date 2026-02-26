@@ -26,7 +26,6 @@ const DashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
@@ -56,7 +55,6 @@ const DashboardPage = () => {
         </div>
       </header>
 
-      {/* Navigation bar */}
       <nav className="bg-background border-b border-border">
         <div className="max-w-2xl mx-auto px-4 flex gap-1 py-1">
           <Button
@@ -95,7 +93,6 @@ const DashboardPage = () => {
         </div>
       </nav>
 
-      {/* Main content */}
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         <MorningSummarySection homeCity={homeCity} />
         <AQIOverviewSection homeCity={homeCity} />

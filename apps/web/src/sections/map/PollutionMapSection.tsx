@@ -8,7 +8,7 @@ import type { MapLevel } from '@/utils/mapTypes'
 import { cn } from '@/lib/utils'
 
 /**
- * Level tabs for the map view switcher.
+ * defines map view switcher tabs.
  */
 const LEVEL_TABS: { label: string; level: MapLevel; disabled?: boolean; hint?: string }[] = [
   { label: 'Country', level: 'country' },
@@ -19,10 +19,7 @@ const LEVEL_TABS: { label: string; level: MapLevel; disabled?: boolean; hint?: s
 ]
 
 /**
- * PollutionMapSection
- *
- * Orchestrates data fetching and map rendering. Keeps AQIMap presentation-only
- * by owning all data concerns here.
+ * orchestrates map data fetching and rendering.
  */
 export function PollutionMapSection() {
   const [level, setLevel] = useState<MapLevel>('country')
@@ -35,7 +32,6 @@ export function PollutionMapSection() {
 
   return (
     <div className="space-y-4">
-      {/* Level switcher */}
       <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
         {LEVEL_TABS.map(tab => (
           <button
@@ -63,7 +59,6 @@ export function PollutionMapSection() {
         ))}
       </div>
 
-      {/* Status banners */}
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-lg px-4 py-2.5">
           <Loader2 className="w-4 h-4 animate-spin shrink-0" />
@@ -79,14 +74,13 @@ export function PollutionMapSection() {
         </Card>
       )}
 
-      {/* Map canvas — renders even while loading so the base tiles appear immediately */}
+      {/* renders map canvas immediately with base tiles. */}
       <div
         className="relative rounded-xl overflow-hidden border border-border"
         style={{ height: '520px' }}
       >
         <AQIMap level={level} countryData={countryData} cityData={cityData} />
 
-        {/* Subtle data source attribution */}
         <div className="absolute bottom-2 left-2 z-[400] text-[10px] text-white/40 pointer-events-none select-none">
           AQI data: OpenAQ, Open-Meteo · Boundaries: Natural Earth
         </div>

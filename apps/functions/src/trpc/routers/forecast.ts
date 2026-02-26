@@ -18,7 +18,7 @@ export const forecastRouter = router({
     .input(z.object({ city: z.string().min(1).max(100).nullable().optional() }))
     .output(ForecastResponseSchema.nullable())
     .query(async ({ input }) => {
-      const city = input.city || 'Manila' // Default fallback
+      const city = input.city || 'Manila'
       const client = new OpenMeteoClient()
       const forecast = await client.get3DayForecast(city)
 
@@ -28,8 +28,7 @@ export const forecastRouter = router({
 
       const pm25Data = forecast.hourly.pm2_5
 
-      // Process up to 3 days (72 hours). Group by day label:
-      // Day 0: "Today", Day 1: "Tomorrow", Day 2: "Day 3"
+      // groups forecast into 3 days.
       const days = []
 
       for (let dayIdx = 0; dayIdx < 3; dayIdx++) {
@@ -37,7 +36,7 @@ export const forecastRouter = router({
         const endHour = startHour + 24
 
         let maxPm25 = 0
-        // Find peak PM2.5 for this 24-hour window
+
         for (let i = startHour; i < endHour && i < pm25Data.length; i++) {
           const val = pm25Data[i]
           if (val !== null && val > maxPm25) {

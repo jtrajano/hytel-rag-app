@@ -14,7 +14,7 @@ export const PollutionDataSchema = z.object({
   pm10: z.number().nonnegative(),
   o3: z.number().nonnegative(),
   no2: z.number().nonnegative(),
-  updatedAt: z.string(), // ISO datetime string — ready for API response
+  updatedAt: z.string(),
 })
 
 export const PlaceSearchResultSchema = z.object({

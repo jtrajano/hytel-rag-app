@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { trpc } from '@/lib/trpc'
 import { useAuth } from '@/hooks/useAuth'
 
-const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
+const CACHE_TTL_MS = 60 * 60 * 1000
 
 function getCached(city: string): string | null {
   try {
@@ -28,7 +28,7 @@ function setCached(city: string, answer: string) {
       JSON.stringify({ answer, cachedAt: Date.now() })
     )
   } catch {
-    // ignore storage quota errors
+    // ignores storage quota errors.
   }
 }
 

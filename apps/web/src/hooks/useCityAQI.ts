@@ -6,7 +6,7 @@ interface CityFeature {
   type: string
   geometry: {
     type: string
-    coordinates: [number, number] // [lon, lat]
+    coordinates: [number, number]
   }
   properties: {
     name: string
@@ -20,8 +20,7 @@ interface FeatureCollection {
 }
 
 /**
- * Fetches city-level AQI data for all major SEA cities using Open-Meteo.
- * Loads the city list from a local GeoJSON and queries the batch API.
+ * queries city aqi data using open-meteo.
  */
 export function useCityAQI() {
   const utils = trpc.useUtils()
@@ -29,7 +28,7 @@ export function useCityAQI() {
   return useQuery<RegionAQIData[]>({
     queryKey: ['map', 'cities'],
     queryFn: async () => {
-      // 1. Fetch the city coordinates list
+      // fetches city coordinates list.
       const resp = await fetch('/geo/sea-cities.json')
       const geojson = (await resp.json()) as FeatureCollection
 
@@ -40,10 +39,9 @@ export function useCityAQI() {
         longitude: f.geometry.coordinates[0],
       }))
 
-      // 2. Query batch AQI from Open-Meteo (via backend)
-      // Note: We use the trpc client directly to bypass the hook overhead for an array of inputs
+      // queries batch aqi via backend bypassing hook overhead.
       return await utils.search.batchCities.fetch(cities)
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   })
 }
