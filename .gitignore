@@ -100,4 +100,6 @@ tmp/*
 *.csv
 apps/functions/vendor/shared/
 .env.*
-scripts/
+scripts/notsave/
+scripts/openaq/
+scripts/tmp/
