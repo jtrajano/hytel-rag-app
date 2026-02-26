@@ -11,10 +11,9 @@ import { trpc } from '@/lib/trpc'
 const TEN_MINUTES_MS = 10 * 60 * 1000
 
 const DashboardPage = () => {
-  const { user, loading: authLoading, signOut, homeCity } = useAuth()
+  const { user, loading: authLoading, homeCityLoading, signOut, homeCity } = useAuth()
 
-  // temporary: map country-level locations to their capital city for AQI readings.
-  const aqiCity = homeCity?.toLowerCase() === 'philippines' ? 'Manila' : homeCity
+  const aqiCity = homeCity
 
   const {
     data: currentAqi,
@@ -23,7 +22,8 @@ const DashboardPage = () => {
   } = trpc.chat.currentAqi.useQuery(
     { city: aqiCity ?? '' },
     {
-      enabled: !authLoading && !!user && !!homeCity,
+      // wait for both firebase auth AND the firestore homeCity fetch to finish.
+      enabled: !authLoading && !homeCityLoading && !!user && !!homeCity,
       staleTime: TEN_MINUTES_MS,
       gcTime: TEN_MINUTES_MS,
       refetchInterval: TEN_MINUTES_MS,
