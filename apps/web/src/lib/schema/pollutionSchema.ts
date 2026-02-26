@@ -27,7 +27,3 @@ export const PlaceSearchResultSchema = z.object({
   preventionTips: z.array(z.object({ id: z.string(), text: z.string() })),
   improvementActions: z.array(z.object({ id: z.string(), text: z.string() })),
 })
-
-// Inferred TypeScript types — Zod is the single source of truth
-export type PollutionData = z.infer<typeof PollutionDataSchema>
-export type PlaceSearchResult = z.infer<typeof PlaceSearchResultSchema>

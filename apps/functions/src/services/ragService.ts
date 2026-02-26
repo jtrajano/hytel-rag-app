@@ -18,12 +18,12 @@ import { env } from '../config/env.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface RagSource {
+interface RagSource {
   label: string
   url: string
 }
 
-export interface RagAnswer {
+interface RagAnswer {
   answer: string
   sources: RagSource[]
   liveAqi?: AirQualityWithLocation

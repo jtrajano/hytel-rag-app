@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // --- Zod Schemas ---
 
-export const GeocodingResultSchema = z.object({
+const GeocodingResultSchema = z.object({
   id: z.number(),
   name: z.string(),
   latitude: z.number(),
@@ -10,11 +10,11 @@ export const GeocodingResultSchema = z.object({
   country: z.string().optional(),
 })
 
-export const GeocodingResponseSchema = z.object({
+const GeocodingResponseSchema = z.object({
   results: z.array(GeocodingResultSchema).optional(),
 })
 
-export const AirQualityHourlySchema = z.object({
+const AirQualityHourlySchema = z.object({
   time: z.array(z.string()),
   pm10: z.array(z.number().nullable()).optional(),
   pm2_5: z.array(z.number().nullable()).optional(),
@@ -23,7 +23,7 @@ export const AirQualityHourlySchema = z.object({
   ozone: z.array(z.number().nullable()).optional(),
 })
 
-export const AirQualityResponseSchema = z.object({
+const AirQualityResponseSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   timezone: z.string(),
@@ -51,7 +51,7 @@ export function _clearGeocodeCache(): void {
 
 // --- Client ---
 
-export interface OpenMeteoClientOptions {
+interface OpenMeteoClientOptions {
   fetchImpl?: typeof fetch
   geocodingBaseUrl?: string
   airQualityBaseUrl?: string

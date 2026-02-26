@@ -3,13 +3,13 @@ import { router, publicProcedure } from '../trpc.js'
 import { OpenMeteoClient } from '../../services/openMeteoClient.js'
 import { pm25ToAqi, aqiToCategory } from '../../utils/aqiUtils.js'
 
-export const DaySummarySchema = z.object({
+const DaySummarySchema = z.object({
   label: z.string(),
   aqi: z.number(),
   category: z.string(),
 })
 
-export const ForecastResponseSchema = z.object({
+const ForecastResponseSchema = z.object({
   days: z.array(DaySummarySchema),
 })
 

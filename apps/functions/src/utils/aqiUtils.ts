@@ -13,7 +13,7 @@ interface AqiBreakpoint {
   iHi: number
 }
 
-export const PM25_BREAKPOINTS: AqiBreakpoint[] = [
+const PM25_BREAKPOINTS: AqiBreakpoint[] = [
   { cLo: 0.0, cHi: 12.0, iLo: 0, iHi: 50 },
   { cLo: 12.1, cHi: 35.4, iLo: 51, iHi: 100 },
   { cLo: 35.5, cHi: 55.4, iLo: 101, iHi: 150 },

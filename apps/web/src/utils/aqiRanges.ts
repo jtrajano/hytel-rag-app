@@ -8,7 +8,7 @@
  *
  * Future city-level support will use this same config unchanged.
  */
-export interface AQIRange {
+interface AQIRange {
   min: number
   max: number // Infinity for the last band
   label: string

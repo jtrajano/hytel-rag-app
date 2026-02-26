@@ -20,7 +20,7 @@ import { pm25ToAqi, aqiToCategory, AqiCategory } from '../utils/aqiUtils.js'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export interface SearchPollution {
+interface SearchPollution {
   aqi: number
   category: AqiCategory
   pm25: number
@@ -30,12 +30,12 @@ export interface SearchPollution {
   updatedAt: string
 }
 
-export interface SearchGuidelineItem {
+interface SearchGuidelineItem {
   id: string
   text: string
 }
 
-export interface CitySearchResult {
+interface CitySearchResult {
   type: 'city' | 'country'
   id: string
   name: string

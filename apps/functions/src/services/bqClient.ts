@@ -1,7 +1,7 @@
 import { BigQuery } from '@google-cloud/bigquery'
 import { env } from '../config/env.js'
 
-export interface GlobalAqiReading {
+interface GlobalAqiReading {
   city: string
   country: string
   timestamp: string
@@ -15,7 +15,7 @@ export interface GlobalAqiReading {
   aqiClass: string | null
 }
 
-export interface AdpcForecast {
+interface AdpcForecast {
   country: string
   initDate: string
   avgPm25: number | null
