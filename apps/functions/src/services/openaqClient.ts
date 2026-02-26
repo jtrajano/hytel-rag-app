@@ -108,7 +108,8 @@ export class OpenAQClient {
     let best: OpenAQLatestResult | null = null
     let bestTs = 0
 
-    // limits scan to avoid excessive api calls.
+    // bound the scan to avoid excessive API calls while still favoring fresh data.
+
     for (const location of candidates.slice(0, 20)) {
       const path = `/locations/${location.id}/latest?limit=${latestLimit}`
       const payload =
