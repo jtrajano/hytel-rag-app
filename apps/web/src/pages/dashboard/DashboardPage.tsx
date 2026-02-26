@@ -13,15 +13,12 @@ const TEN_MINUTES_MS = 10 * 60 * 1000
 const DashboardPage = () => {
   const { user, loading: authLoading, signOut, homeCity } = useAuth()
 
-  // temporary: map country-level locations to their capital city for AQI readings.
-  const aqiCity = homeCity?.toLowerCase() === 'philippines' ? 'Manila' : homeCity
-
   const {
     data: currentAqi,
     isLoading: aqiLoading,
     isError: aqiError,
   } = trpc.chat.currentAqi.useQuery(
-    { city: aqiCity ?? '' },
+    { city: homeCity ?? '' },
     {
       enabled: !authLoading && !!user && !!homeCity,
       staleTime: TEN_MINUTES_MS,
@@ -114,9 +111,9 @@ const DashboardPage = () => {
       </nav>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        <MorningSummarySection homeCity={aqiCity} currentAqi={currentAqi} />
+        <MorningSummarySection homeCity={homeCity} currentAqi={currentAqi} />
         <AQIOverviewSection currentAqi={currentAqi} isLoading={aqiLoading} isError={aqiError} />
-        <ForecastSection homeCity={aqiCity} />
+        <ForecastSection homeCity={homeCity} />
       </main>
     </div>
   )
