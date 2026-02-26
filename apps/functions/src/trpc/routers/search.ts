@@ -60,6 +60,39 @@ export const searchRouter = router({
       return await svc.lookupCity(input.query, input.skipAi)
     }),
 
+  guidelines: protectedProcedure
+    .input(
+      z.object({
+        name: z.string(),
+        country: z.string(),
+        type: z.enum(['city', 'country']),
+        aqi: z.number(),
+        category: AqiCategorySchema,
+        pm25: z.number(),
+        pm10: z.number(),
+        no2: z.number(),
+      })
+    )
+    .output(
+      z.object({
+        visitorGuidelines: z.array(GuidelineItemSchema),
+        preventionTips: z.array(GuidelineItemSchema),
+        improvementActions: z.array(GuidelineItemSchema),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return await svc.generateGuidelines(
+        input.name,
+        input.country,
+        input.type,
+        input.aqi,
+        input.category,
+        input.pm25,
+        input.pm10,
+        input.no2
+      )
+    }),
+
   batchCities: protectedProcedure
     .input(
       z.array(

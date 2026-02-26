@@ -114,12 +114,18 @@ describe('SearchService', () => {
   })
 
   it('falls back to Open-Meteo when OpenAQ has no reading', async () => {
+    // build a time string matching the current UTC hour so the index-lookup hits index 0.
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const currentHourStr = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}T${pad(now.getUTCHours())}:00`
+
     mocks.openMeteoGetAirQualityByLocation.mockResolvedValueOnce({
       location: { name: 'Jakarta', country: 'Indonesia' },
       forecast: {
+        timezone: 'UTC',
         hourly: {
-          time: ['2026-02-20T00:00:00Z'],
-          pm2_5: [null, 31.2],
+          time: [currentHourStr],
+          pm2_5: [31.2],
           pm10: [45.3],
           nitrogen_dioxide: [11.1],
           ozone: [19.4],
