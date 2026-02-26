@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PM25_BREAKPOINTS, aqiToCategory, findClosestHourlyIndex, pm25ToAqi } from './aqiUtils'
+import { aqiToCategory, findClosestHourlyIndex, pm25ToAqi } from './aqiUtils'
 
 describe('aqiUtils', () => {
   describe('pm25ToAqi', () => {
@@ -18,9 +18,10 @@ describe('aqiUtils', () => {
       expect(pm25ToAqi(999)).toBe(500)
     })
 
-    it('uses all configured PM2.5 breakpoints', () => {
-      expect(PM25_BREAKPOINTS).toHaveLength(6)
+    it('covers configured PM2.5 breakpoint ranges', () => {
       expect(pm25ToAqi(80)).toBeGreaterThan(150)
+      expect(pm25ToAqi(200)).toBeGreaterThanOrEqual(250)
+      expect(pm25ToAqi(400)).toBeGreaterThan(400)
     })
   })
 
