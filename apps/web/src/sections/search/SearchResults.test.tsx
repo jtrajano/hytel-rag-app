@@ -1,6 +1,20 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import { SearchResults } from './SearchResults'
+
+const { mockUseMutation } = vi.hoisted(() => ({
+  mockUseMutation: vi.fn(),
+}))
+
+vi.mock('@/lib/trpc', () => ({
+  trpc: {
+    search: {
+      guidelines: {
+        useMutation: mockUseMutation,
+      },
+    },
+  },
+}))
 
 const baseResult = {
   type: 'city' as const,
@@ -23,12 +37,32 @@ const baseResult = {
 }
 
 describe('SearchResults', () => {
+  beforeEach(() => {
+    mockUseMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+      isError: false,
+      data: null,
+    })
+  })
+
   it('hides visitor guidelines when AQI <= 100', () => {
     const { queryByText } = render(<SearchResults result={baseResult} />)
     expect(queryByText('Visitor Guidelines')).not.toBeInTheDocument()
   })
 
   it('shows visitor guidelines when AQI > 100', () => {
+    mockUseMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+      isError: false,
+      data: {
+        visitorGuidelines: baseResult.visitorGuidelines,
+        preventionTips: [],
+        improvementActions: [],
+      },
+    })
+
     const result = {
       ...baseResult,
       pollution: { ...baseResult.pollution, aqi: 150, category: 'Unhealthy for Sensitive Groups' },

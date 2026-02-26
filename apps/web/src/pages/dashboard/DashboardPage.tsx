@@ -10,17 +10,31 @@ import { trpc } from '@/lib/trpc'
 
 const TEN_MINUTES_MS = 10 * 60 * 1000
 
+const COUNTRY_TO_CAPITAL: Record<string, string> = {
+  Thailand: 'Bangkok',
+  Vietnam: 'Hanoi',
+  Cambodia: 'Phnom Penh',
+  Laos: 'Vientiane',
+  Myanmar: 'Naypyidaw',
+  Malaysia: 'Kuala Lumpur',
+  Indonesia: 'Jakarta',
+  Philippines: 'Manila',
+  Singapore: 'Singapore',
+  Brunei: 'Bandar Seri Begawan',
+  'Timor-Leste': 'Dili',
+}
+
 const DashboardPage = () => {
   const { user, loading: authLoading, homeCityLoading, signOut, homeCity } = useAuth()
 
-  const aqiCity = homeCity
+  const aqiCity = (homeCity && COUNTRY_TO_CAPITAL[homeCity]) ?? homeCity ?? ''
 
   const {
     data: currentAqi,
     isLoading: aqiLoading,
     isError: aqiError,
   } = trpc.chat.currentAqi.useQuery(
-    { city: aqiCity ?? '' },
+    { city: aqiCity },
     {
       // wait for both firebase auth AND the firestore homeCity fetch to finish.
       enabled: !authLoading && !homeCityLoading && !!user && !!homeCity,
@@ -114,9 +128,9 @@ const DashboardPage = () => {
       </nav>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        <MorningSummarySection homeCity={aqiCity} currentAqi={currentAqi} />
+        <MorningSummarySection homeCity={homeCity} currentAqi={currentAqi} />
         <AQIOverviewSection currentAqi={currentAqi} isLoading={aqiLoading} isError={aqiError} />
-        <ForecastSection homeCity={aqiCity} />
+        <ForecastSection homeCity={homeCity} />
       </main>
     </div>
   )

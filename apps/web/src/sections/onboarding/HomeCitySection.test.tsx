@@ -96,13 +96,17 @@ describe('HomeCitySection', () => {
     vi.mocked(useNavigate).mockReturnValue(navigate)
     vi.mocked(useAuth).mockReturnValue({ user: { uid: 'user-1' }, setHomeCity } as never)
 
-    const { getByPlaceholderText, getByRole } = render(
+    const { getByText, getByPlaceholderText, getByRole } = render(
       <MemoryRouter>
         <HomeCitySection />
       </MemoryRouter>
     )
 
-    fireEvent.change(getByPlaceholderText('Type your country...'), {
+    // Step 1: select Philippines from country cards
+    fireEvent.click(getByText('Philippines'))
+
+    // Step 2: enter city name
+    fireEvent.change(getByPlaceholderText('Search for a city...'), {
       target: { value: 'Philippines' },
     })
     fireEvent.click(getByRole('button', { name: 'Complete Setup' }))
@@ -122,19 +126,23 @@ describe('HomeCitySection', () => {
   it('shows validation error for unsupported countries', async () => {
     mockByCityFetch.mockResolvedValue({ type: 'country', name: 'Japan', country: 'Japan' })
 
-    const { getByPlaceholderText, getByRole, findByText } = render(
+    const { getByText, getByPlaceholderText, getByRole, findByText } = render(
       <MemoryRouter>
         <HomeCitySection />
       </MemoryRouter>
     )
 
-    fireEvent.change(getByPlaceholderText('Type your country...'), {
+    // Step 1: select Thailand from country cards
+    fireEvent.click(getByText('Thailand'))
+
+    // Step 2: enter a city not in Thailand
+    fireEvent.change(getByPlaceholderText('Search for a city...'), {
       target: { value: 'Japan' },
     })
     fireEvent.click(getByRole('button', { name: 'Complete Setup' }))
 
     expect(
-      await findByText('This application only supports Southeast Asian countries.')
+      await findByText('"Japan" does not appear to be a city in Thailand. Please try again.')
     ).toBeInTheDocument()
   })
 })
