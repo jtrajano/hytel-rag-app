@@ -38,7 +38,6 @@ describe('OpenMeteoClient', () => {
       country: 'Germany',
     })
 
-    // Verify arguments
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const callUrl = fetchMock.mock.calls[0][0]
     expect(callUrl).toContain('name=Berlin')
@@ -59,7 +58,6 @@ describe('OpenMeteoClient', () => {
   })
 
   it('fetches a 3-day forecast successfully', async () => {
-    // 1st call: geocoding
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -77,7 +75,6 @@ describe('OpenMeteoClient', () => {
       )
     )
 
-    // 2nd call: air quality
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -117,7 +114,6 @@ describe('OpenMeteoClient', () => {
   })
 
   it('returns null for forecast if city is not found', async () => {
-    // Geocoding fails to find city
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ results: [] }), {
         status: 200,
@@ -129,7 +125,7 @@ describe('OpenMeteoClient', () => {
     const result = await client.get3DayForecast('Nowhereville')
 
     expect(result).toBeNull()
-    expect(fetchMock).toHaveBeenCalledTimes(1) // AQ API not called
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('throws an error when the API request fails', async () => {

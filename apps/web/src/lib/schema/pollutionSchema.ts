@@ -14,7 +14,7 @@ export const PollutionDataSchema = z.object({
   pm10: z.number().nonnegative(),
   o3: z.number().nonnegative(),
   no2: z.number().nonnegative(),
-  updatedAt: z.string(), // ISO datetime string — ready for API response
+  updatedAt: z.string(),
 })
 
 export const PlaceSearchResultSchema = z.object({
@@ -27,7 +27,3 @@ export const PlaceSearchResultSchema = z.object({
   preventionTips: z.array(z.object({ id: z.string(), text: z.string() })),
   improvementActions: z.array(z.object({ id: z.string(), text: z.string() })),
 })
-
-// Inferred TypeScript types — Zod is the single source of truth
-export type PollutionData = z.infer<typeof PollutionDataSchema>
-export type PlaceSearchResult = z.infer<typeof PlaceSearchResultSchema>

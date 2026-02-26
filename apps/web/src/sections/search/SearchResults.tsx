@@ -43,7 +43,6 @@ export function SearchResults({ result }: { result: SearchResult }) {
 
   return (
     <div className="space-y-4">
-      {/* Place header card */}
       <Card className="border-border shadow-sm">
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
@@ -68,7 +67,6 @@ export function SearchResults({ result }: { result: SearchResult }) {
         </CardContent>
       </Card>
 
-      {/* Pollution overview card */}
       <Card className="border-border shadow-sm overflow-hidden">
         <div className="bg-muted/30 border-b border-border px-5 pt-5 pb-4">
           <div className="flex items-center justify-between mb-3">
@@ -97,7 +95,6 @@ export function SearchResults({ result }: { result: SearchResult }) {
         </div>
 
         <CardContent className="p-5 space-y-4">
-          {/* AQI scale bar */}
           <div>
             <div className="flex h-2 rounded-full overflow-hidden">
               {AQI_SCALE_SEGMENTS.map((seg, i) => (
@@ -121,7 +118,6 @@ export function SearchResults({ result }: { result: SearchResult }) {
 
           <Separator />
 
-          {/* Pollutant grid */}
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'PM2.5', value: pollution.pm25, unit: 'µg/m³' },
@@ -143,7 +139,6 @@ export function SearchResults({ result }: { result: SearchResult }) {
             ))}
           </div>
 
-          {/* Timestamp */}
           <p className="text-xs text-muted-foreground">
             {isCountry ? 'Data as of' : 'Last updated'}:{' '}
             {new Date(pollution.updatedAt).toLocaleString('en-US', {
@@ -158,7 +153,7 @@ export function SearchResults({ result }: { result: SearchResult }) {
         </CardContent>
       </Card>
 
-      {/* Visitor guidelines — shown only when AQI > 100 */}
+      {/* displays guidelines when aqi exceeds 100. */}
       {showVisitorGuidelines && (
         <Card className="border-border shadow-sm">
           <CardHeader className="px-5 pt-5 pb-3">
@@ -191,7 +186,7 @@ export function SearchResults({ result }: { result: SearchResult }) {
         </Card>
       )}
 
-      {/* Prevention & improvement card — always shown */}
+      {/* displays prevention and improvement actions. */}
       <Card className="border-border shadow-sm">
         <CardHeader className="px-5 pt-5 pb-3">
           <div className="flex items-center justify-between">

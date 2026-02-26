@@ -11,7 +11,7 @@ import SignupPage from '@/pages/auth/SignupPage'
 import ChatPage from '@/pages/chat/ChatPage'
 import PollutionMapPage from '@/pages/map/PollutionMapPage'
 
-// Redirects authenticated users based on signInRedirect (new user → onboarding, returning → dashboard)
+// redirects users based on signin context.
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const { user, loading, signInRedirect } = useAuth()
   if (loading) return null
@@ -22,7 +22,7 @@ function PublicOnlyRoute({ children }: { children: ReactNode }) {
 export const AppRouter = () => {
   return (
     <Routes>
-      {/* Public routes — redirect to /dashboard when already signed in */}
+      {/* redirects public routes to dashboard if authenticated. */}
       <Route
         path="/"
         element={
@@ -48,7 +48,7 @@ export const AppRouter = () => {
         }
       />
 
-      {/* Protected routes — redirect to /login when not signed in */}
+      {/* redirects protected routes to login if unauthenticated. */}
       <Route element={<ProtectedRoute />}>
         <Route path="/onboarding/profile" element={<HealthProfilePage />} />
         <Route path="/onboarding/city" element={<HomeCityPage />} />

@@ -4,15 +4,11 @@ import { Button } from '@/components/ui/button'
 import { PollutionMapSection } from '@/sections/map/PollutionMapSection'
 
 /**
- * PollutionMapPage
- *
- * Thin page shell — header + back navigation + section.
- * All data and map logic lives in PollutionMapSection.
+ * map page container for pollution section.
  */
 const PollutionMapPage = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
           <Button

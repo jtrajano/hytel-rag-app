@@ -9,20 +9,19 @@ interface CityFeature {
 }
 
 interface CityLayerProps {
-  /** City AQI data from useCityAQI hook */
+  // city aqi measurements.
   cities: RegionAQIData[]
-  /** Leaflet pane to render in */
+  // leaflet drawing pane.
   pane?: string
 }
 
 /**
- * Renders circle markers for city-level AQI data.
- * Fetches the base coordinates from sea-cities.json and matches with AQI data.
+ * renders city aqi circle markers.
  */
 export function CityLayer({ cities, pane }: CityLayerProps) {
   const [coords, setCoords] = useState<Map<string, [number, number]>>(new Map())
 
-  // Load coordinates once to match with AQI results
+  // loads coordinates for aqi matching.
   useEffect(() => {
     fetch('/geo/sea-cities.json')
       .then(r => r.json())

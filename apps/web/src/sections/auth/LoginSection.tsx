@@ -83,7 +83,6 @@ const LoginSection = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br px-6 py-12">
-      {/* Logo — mirrors SplashSection */}
       <div className="mb-8 flex items-center justify-center w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border shadow-sm">
         <Wind className="w-10 h-10 text-primary" />
       </div>
@@ -95,7 +94,6 @@ const LoginSection = () => {
         Sign in to get personalized air quality insights for Southeast Asia
       </p>
 
-      {/* Sign-in card */}
       <div className="w-full max-w-sm bg-card rounded-2xl p-8 shadow-xl border">
         <h2 className="text-xl font-semibold text-card-foreground text-center mb-6">
           Welcome Back

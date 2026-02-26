@@ -1,20 +1,12 @@
 /**
- * Shared AQI range configuration — single source of truth for all AQI bands.
- *
- * Both the map's color logic and the legend derive from this config.
- * Adding or adjusting a range here automatically propagates to:
- *   - getAQIColor / getAQICategory (aqiColor.ts)
- *   - AQILegend component
- *
- * Future city-level support will use this same config unchanged.
+ * defines shared aqi range configuration.
  */
-export interface AQIRange {
+interface AQIRange {
   min: number
-  max: number // Infinity for the last band
+  max: number
   label: string
-  /** Hex color used on the Leaflet map */
   hex: string
-  /** Tailwind background class — must be an explicit string for JIT to detect */
+  // requires explicit tailwind background class string.
   bgClass: string
 }
 

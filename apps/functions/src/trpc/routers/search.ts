@@ -4,8 +4,7 @@ import { SearchService } from '../../services/searchService.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 
-// Module-level instance: shared across warm Cloud Function invocations,
-// avoiding repeated client construction overhead on every request.
+// utilizes module level instance to avoid repeated construction overhead.
 const svc = new SearchService(PROJECT_ID)
 
 const AqiCategorySchema = z.enum([
@@ -76,7 +75,6 @@ export const searchRouter = router({
     .query(async ({ input }) => {
       if (input.length === 0) return []
 
-      // Fetch all cities in parallel using lookupCity (skipping Vertex AI generation)
       const results = await Promise.all(
         input.map(async city => {
           try {
@@ -96,7 +94,6 @@ export const searchRouter = router({
         })
       )
 
-      // Filter out any cities that completely failed to resolve
       return results.filter(res => res !== null) as z.infer<typeof RegionAQIDataSchema>[]
     }),
 

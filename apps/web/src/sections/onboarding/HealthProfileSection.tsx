@@ -53,7 +53,7 @@ const HealthProfileSection = () => {
   const toggleProfile = (id: ProfileId) => {
     setSelectedProfiles(prev => {
       if (prev.includes(id)) return prev.filter(p => p !== id)
-      if (prev.length >= MAX_SELECTIONS) return prev // silently cap at 3
+      if (prev.length >= MAX_SELECTIONS) return prev // caps selections to max limit.
       return [...prev, id]
     })
   }
@@ -73,7 +73,6 @@ const HealthProfileSection = () => {
 
   return (
     <div className="min-h-screen flex flex-col px-4 py-8 max-w-lg mx-auto">
-      {/* Step indicator */}
       <div className="flex items-center gap-2 mb-8">
         <div className="flex gap-1.5">
           <div className="w-6 h-1.5 rounded-full bg-primary" />
@@ -82,13 +81,11 @@ const HealthProfileSection = () => {
         <span className="text-xs text-muted-foreground font-medium">Step 1 of 2</span>
       </div>
 
-      {/* Heading */}
       <h1 className="text-2xl font-bold text-foreground mb-2">Tell us about your health profile</h1>
       <p className="text-sm text-muted-foreground mb-1">
         We'll personalize air quality recommendations based on your needs
       </p>
 
-      {/* Selection counter */}
       <p
         className={cn(
           'text-xs font-medium mb-8',
@@ -99,7 +96,6 @@ const HealthProfileSection = () => {
         <span className={cn(count > 0 && 'font-semibold text-foreground')}>{count}</span> selected
       </p>
 
-      {/* Profile cards grid */}
       <div className="grid grid-cols-2 gap-3 mb-8">
         {PROFILE_CARDS.map(profile => {
           const Icon = profile.icon
@@ -119,7 +115,6 @@ const HealthProfileSection = () => {
                     : 'border-border hover:border-primary/50 hover:shadow-sm'
               )}
             >
-              {/* Checkmark badge */}
               {isSelected && (
                 <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                   <Check className="w-3 h-3 text-primary-foreground" />
@@ -156,7 +151,6 @@ const HealthProfileSection = () => {
         })}
       </div>
 
-      {/* Continue button */}
       <Button
         size="lg"
         className="w-full rounded-lg"

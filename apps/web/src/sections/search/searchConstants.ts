@@ -1,4 +1,4 @@
-// Explicit ring classes required for Tailwind JIT — never use string interpolation
+// requires explicit ring classes for tailwind jit compiler.
 export const AQI_SCALE_SEGMENTS = [
   { bg: 'bg-green-400', ringClass: 'ring-green-400', title: 'Good (0–50)' },
   { bg: 'bg-yellow-400', ringClass: 'ring-yellow-400', title: 'Moderate (51–100)' },

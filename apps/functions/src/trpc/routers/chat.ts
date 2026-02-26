@@ -33,7 +33,7 @@ export const chatRouter = router({
         }
       }
 
-      // Fallback: if SearchService misses (e.g., missing OpenAQ/BQ data), use Open-Meteo forecast.
+      // uses open meteo forecast if searchservice misses data.
       const forecast = await openMeteo.get3DayForecast(input.city)
       const pm25Values = forecast?.hourly?.pm2_5 ?? []
       const firstIndex = pm25Values.findIndex(v => v !== null)
@@ -165,7 +165,7 @@ export const chatRouter = router({
       }
     }),
 
-  // Query mirror for clients that issue GET requests (e.g., stale cached bundles).
+  // provides a query mirror for clients using get requests.
   askBriefing: publicProcedure
     .input(
       z.object({
@@ -205,7 +205,7 @@ Open-Meteo nearest hourly air-quality sample for ${input.city}:
 - Estimated AQI from PM2.5: ${aqi ?? 'n/a'}${category ? ` (${category})` : ''}`
           }
         } catch {
-          // Keep briefing resilient if Open-Meteo is unavailable.
+          // ignore parsing error
         }
       }
 
