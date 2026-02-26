@@ -38,7 +38,11 @@ describe('MorningSummarySection', () => {
     vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
     localStorage.setItem(
       'morning_briefing:Manila',
-      JSON.stringify({ answer: 'cached summary', cachedAt: 1_000_000 - 30 * 60 * 1000 })
+      JSON.stringify({
+        answer: 'cached summary',
+        cachedAt: 1_000_000 - 30 * 60 * 1000,
+        city: 'Manila',
+      })
     )
 
     render(<MorningSummarySection homeCity="Manila" />)
@@ -78,6 +82,7 @@ describe('MorningSummarySection', () => {
       expect(JSON.parse(raw as string)).toEqual({
         answer: 'fresh summary',
         cachedAt: 2_000_000,
+        city: 'Singapore',
       })
     })
   })

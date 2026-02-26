@@ -121,7 +121,7 @@ const MorningSummarySection = ({ homeCity, currentAqi }: MorningSummarySectionPr
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Morning Health Briefing
+              Health Briefing
             </p>
             <p className="text-xs text-muted-foreground">
               {homeCity ?? 'Set your location'} - {today}

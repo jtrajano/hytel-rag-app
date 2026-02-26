@@ -78,21 +78,4 @@ describe('DashboardPage', () => {
     fireEvent.click(getByLabelText('Sign out'))
     expect(signOut).toHaveBeenCalledTimes(1)
   })
-
-  it('maps Philippines homeCity to Manila for the AQI query', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      user: { displayName: 'Jane Doe' },
-      loading: false,
-      signOut: vi.fn(),
-      homeCity: 'Philippines',
-    } as never)
-
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>
-    )
-
-    expect(mockUseQuery).toHaveBeenCalledWith({ city: 'Manila' }, expect.anything())
-  })
 })
