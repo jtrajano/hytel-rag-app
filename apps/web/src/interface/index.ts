@@ -6,13 +6,3 @@ export interface ProfileCard {
   title: string
   description: string
 }
-
-export interface ForecastDay {
-  label: string
-  aqi: number
-  category: string
-  aqiColor: string
-  badgeClass: string
-  WeatherIcon: React.ElementType
-  iconColor: string
-}

@@ -6,9 +6,29 @@ import MorningSummarySection from '@/sections/dashboard/MorningSummarySection'
 import AQIOverviewSection from '@/sections/dashboard/AQIOverviewSection'
 import ForecastSection from '@/sections/dashboard/ForecastSection'
 import { useAuth } from '@/hooks/useAuth'
+import { trpc } from '@/lib/trpc'
+
+const TEN_MINUTES_MS = 10 * 60 * 1000
 
 const DashboardPage = () => {
-  const { user, signOut, homeCity } = useAuth()
+  const { user, loading: authLoading, homeCityLoading, signOut, homeCity } = useAuth()
+
+  const aqiCity = homeCity
+
+  const {
+    data: currentAqi,
+    isLoading: aqiLoading,
+    isError: aqiError,
+  } = trpc.chat.currentAqi.useQuery(
+    { city: aqiCity ?? '' },
+    {
+      // wait for both firebase auth AND the firestore homeCity fetch to finish.
+      enabled: !authLoading && !homeCityLoading && !!user && !!homeCity,
+      staleTime: TEN_MINUTES_MS,
+      gcTime: TEN_MINUTES_MS,
+      refetchInterval: TEN_MINUTES_MS,
+    }
+  )
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -26,7 +46,6 @@ const DashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
@@ -56,7 +75,6 @@ const DashboardPage = () => {
         </div>
       </header>
 
-      {/* Navigation bar */}
       <nav className="bg-background border-b border-border">
         <div className="max-w-2xl mx-auto px-4 flex gap-1 py-1">
           <Button
@@ -95,11 +113,10 @@ const DashboardPage = () => {
         </div>
       </nav>
 
-      {/* Main content */}
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        <MorningSummarySection homeCity={homeCity} />
-        <AQIOverviewSection homeCity={homeCity} />
-        <ForecastSection homeCity={homeCity} />
+        <MorningSummarySection homeCity={aqiCity} currentAqi={currentAqi} />
+        <AQIOverviewSection currentAqi={currentAqi} isLoading={aqiLoading} isError={aqiError} />
+        <ForecastSection homeCity={aqiCity} />
       </main>
     </div>
   )

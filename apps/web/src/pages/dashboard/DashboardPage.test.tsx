@@ -4,14 +4,25 @@ import { MemoryRouter } from 'react-router-dom'
 import DashboardPage from './DashboardPage'
 import { useAuth } from '@/hooks/useAuth'
 
-const { morningMock, aqiMock, forecastMock } = vi.hoisted(() => ({
+const { morningMock, aqiMock, forecastMock, mockUseQuery } = vi.hoisted(() => ({
   morningMock: vi.fn(() => null),
   aqiMock: vi.fn(() => null),
   forecastMock: vi.fn(() => null),
+  mockUseQuery: vi.fn(),
 }))
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(),
+}))
+
+vi.mock('@/lib/trpc', () => ({
+  trpc: {
+    chat: {
+      currentAqi: {
+        useQuery: mockUseQuery,
+      },
+    },
+  },
 }))
 
 vi.mock('@/sections/dashboard/MorningSummarySection', () => ({
@@ -26,15 +37,24 @@ vi.mock('@/sections/dashboard/ForecastSection', () => ({
   default: forecastMock,
 }))
 
+const mockAqi = {
+  city: 'Manila',
+  aqi: 55,
+  quality: 'Moderate',
+  updatedAt: new Date().toISOString(),
+}
+
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseQuery.mockReturnValue({ data: mockAqi, isLoading: false, isError: false })
   })
 
-  it('passes homeCity into dashboard sections and handles sign out', () => {
+  it('passes currentAqi into dashboard sections and handles sign out', () => {
     const signOut = vi.fn()
     vi.mocked(useAuth).mockReturnValue({
       user: { displayName: 'Jane Doe' },
+      loading: false,
       signOut,
       homeCity: 'Manila',
     } as never)
@@ -45,8 +65,14 @@ describe('DashboardPage', () => {
       </MemoryRouter>
     )
 
-    expect(morningMock).toHaveBeenCalledWith(expect.objectContaining({ homeCity: 'Manila' }), {})
-    expect(aqiMock).toHaveBeenCalledWith(expect.objectContaining({ homeCity: 'Manila' }), {})
+    expect(morningMock).toHaveBeenCalledWith(
+      expect.objectContaining({ homeCity: 'Manila', currentAqi: mockAqi }),
+      {}
+    )
+    expect(aqiMock).toHaveBeenCalledWith(
+      expect.objectContaining({ currentAqi: mockAqi, isLoading: false, isError: false }),
+      {}
+    )
     expect(forecastMock).toHaveBeenCalledWith(expect.objectContaining({ homeCity: 'Manila' }), {})
 
     fireEvent.click(getByLabelText('Sign out'))

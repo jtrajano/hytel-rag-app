@@ -6,7 +6,7 @@ import { router, protectedProcedure, publicProcedure } from '../trpc.js'
 import { RAGService } from '../../services/ragService.js'
 import { SearchService } from '../../services/searchService.js'
 import { OpenMeteoClient } from '../../services/openMeteoClient.js'
-import { pm25ToAqi, aqiToCategory, findClosestHourlyIndex } from '../../utils/aqiUtils.js'
+import { pm25ToAqi, aqiToCategory } from '../../utils/aqiUtils.js'
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT ?? 'aircare-sea'
 const db = new Firestore({ projectId: PROJECT_ID })
@@ -33,7 +33,7 @@ export const chatRouter = router({
         }
       }
 
-      // Fallback: if SearchService misses (e.g., missing OpenAQ/BQ data), use Open-Meteo forecast.
+      // uses open meteo forecast if searchservice misses data.
       const forecast = await openMeteo.get3DayForecast(input.city)
       const pm25Values = forecast?.hourly?.pm2_5 ?? []
       const firstIndex = pm25Values.findIndex(v => v !== null)
@@ -165,50 +165,34 @@ export const chatRouter = router({
       }
     }),
 
-  // Query mirror for clients that issue GET requests (e.g., stale cached bundles).
+  // thin query wrapper around rag.ask — mirrors what the chat section does.
+  // when currentAqi is provided by the caller (dashboard), skips internal Open-Meteo
+  // fetches in both this procedure and rag.ask to guarantee a consistent reading.
   askBriefing: publicProcedure
     .input(
       z.object({
         question: z.string().min(1).max(500),
         city: z.string().optional(),
-        country: z.string().optional(),
+        currentAqi: z
+          .object({
+            aqi: z.number(),
+            quality: z.string(),
+            updatedAt: z.string(),
+          })
+          .optional(),
       })
     )
     .query(async ({ input }) => {
-      let question = input.question
+      if (input.currentAqi) {
+        // pre-fetched AQI provided — inject it and skip all Open-Meteo fetches
+        // by calling rag.ask without city (city=undefined means no internal fetch).
+        const enriched = `${input.question}
 
-      if (input.city) {
-        try {
-          const forecast = await openMeteo.get3DayForecast(input.city)
-          const times = forecast?.hourly?.time ?? []
-          const idx = findClosestHourlyIndex(times, new Date())
-
-          if (forecast && idx !== -1) {
-            const pm25 = forecast.hourly?.pm2_5?.[idx] ?? null
-            const pm10 = forecast.hourly?.pm10?.[idx] ?? null
-            const no2 = forecast.hourly?.nitrogen_dioxide?.[idx] ?? null
-            const o3 = forecast.hourly?.ozone?.[idx] ?? null
-            const co = forecast.hourly?.carbon_monoxide?.[idx] ?? null
-            const sampleTime = times[idx]
-            const aqi = pm25 != null ? pm25ToAqi(pm25) : null
-            const category = aqi != null ? aqiToCategory(aqi) : null
-
-            question = `${question}
-
-Open-Meteo nearest hourly air-quality sample for ${input.city}:
-- Time (closest to now): ${sampleTime}
-- PM2.5: ${pm25 ?? 'n/a'} µg/m³
-- PM10: ${pm10 ?? 'n/a'} µg/m³
-- NO2: ${no2 ?? 'n/a'} µg/m³
-- O3: ${o3 ?? 'n/a'} µg/m³
-- CO: ${co ?? 'n/a'} µg/m³
-- Estimated AQI from PM2.5: ${aqi ?? 'n/a'}${category ? ` (${category})` : ''}`
-          }
-        } catch {
-          // Keep briefing resilient if Open-Meteo is unavailable.
-        }
+Live reading for ${input.city ?? 'this city'} (as of ${input.currentAqi.updatedAt}):
+- Estimated AQI: ${input.currentAqi.aqi} (${input.currentAqi.quality})`
+        return await rag.ask(enriched, [], undefined)
       }
 
-      return await rag.ask(question, [], input.city)
+      return await rag.ask(input.question, [], input.city)
     }),
 })

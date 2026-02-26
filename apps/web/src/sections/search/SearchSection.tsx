@@ -63,7 +63,7 @@ const SearchSection = () => {
       return
     }
 
-    // Prioritize city as requested by user
+    // prioritizes city from location result.
     const searchQuery = location.city || location.country || ''
 
     if (!searchQuery) {
@@ -79,7 +79,6 @@ const SearchSection = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <Button
@@ -103,7 +102,6 @@ const SearchSection = () => {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Search bar */}
         <div className="space-y-2">
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -139,7 +137,6 @@ const SearchSection = () => {
           {locationError && <p className="text-xs text-destructive pl-1">{locationError}</p>}
         </div>
 
-        {/* Popular searches */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
             Popular searches
@@ -158,14 +155,12 @@ const SearchSection = () => {
           </div>
         </div>
 
-        {/* Loading state */}
         {isLoading && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         )}
 
-        {/* Error state */}
         {isError && (
           <Card className="border-destructive/30">
             <CardContent className="p-5 text-sm text-destructive">
@@ -174,7 +169,6 @@ const SearchSection = () => {
           </Card>
         )}
 
-        {/* No results state */}
         {!isLoading && !isError && submittedQuery.length > 0 && data === null && (
           <Card className="border-border">
             <CardContent className="p-5 text-center">
@@ -189,7 +183,6 @@ const SearchSection = () => {
           </Card>
         )}
 
-        {/* Results */}
         {!isLoading && !isError && data && <SearchResults result={data} />}
       </main>
     </div>

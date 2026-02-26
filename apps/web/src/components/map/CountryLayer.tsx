@@ -5,47 +5,32 @@ import type { FeatureCollection, Feature, Geometry } from 'geojson'
 import { getAQIColor } from '@/utils/aqiColor'
 import type { RegionAQIData } from '@/utils/mapTypes'
 
-// ---------------------------------------------------------------------------
-// GeoJSON source — Natural Earth country boundaries (public domain)
-// Swap this URL to change source resolution without touching component logic.
-// ---------------------------------------------------------------------------
 const SEA_GEOJSON_URL =
   'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson'
 
-/** GeoJSON feature properties we rely on for country matching */
+// geojson properties for country matching.
 interface CountryProperties {
-  ADMIN?: string // full country name
-  ISO_A3?: string // 3-letter ISO code
+  ADMIN?: string
+  ISO_A3?: string
   [key: string]: unknown
 }
 
 interface CountryLayerProps {
-  /** AQI data keyed by lowercase country name */
+  // aqi data mapped by country.
   aqiData: Map<string, RegionAQIData>
-  /** Leaflet pane to render in */
+  // leaflet rendering pane.
   pane?: string
 }
 
 /**
- * Renders a GeoJSON layer for Southeast Asian countries.
- *
- * Each polygon is colored based on the country's AQI via `getAQIColor`.
- * Countries with no data render in a neutral dark gray for visual context.
- *
- * Interactions:
- *   - Hover  → highlights border, shows styled tooltip
- *   - Click  → fits bounds + opens popup with full AQI details
- *
- * Architecture note:
- *   Coupled only to `RegionAQIData` and a URL. Adapting to another region
- *   only requires swapping the GeoJSON URL.
+ * renders geojson layer for southeast asia.
  */
 export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
   const map = useMap()
   const geojsonRef = useRef<L.GeoJSON | null>(null)
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null)
 
-  // Fetch GeoJSON once on mount
+  // fetches geojson boundary data.
   useEffect(() => {
     let cancelled = false
     fetch(SEA_GEOJSON_URL)
@@ -59,7 +44,7 @@ export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
     }
   }, [])
 
-  // Re-color polygons whenever AQI data updates
+  // recolors polygons on aqi update.
   useEffect(() => {
     if (!geojsonRef.current) return
     geojsonRef.current.setStyle(feature =>
@@ -73,7 +58,7 @@ export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
     const props = feature?.properties
     if (!props) return undefined
 
-    // Try multiple possible name properties common in GeoJSON datasets
+    // attempts multiple possible geojson name properties.
     const possibleNames = [
       props.name,
       props.NAME,
@@ -130,7 +115,6 @@ export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
 
     const color = getAQIColor(region.aqi)
 
-    // ---------- Tooltip ----------
     layer.bindTooltip(
       `<div style="
         padding:6px 10px;
@@ -158,7 +142,6 @@ export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
       }
     )
 
-    // ---------- Popup ----------
     layer.bindPopup(
       `<div style="
         font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -183,7 +166,6 @@ export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
       { closeButton: false, maxWidth: 240 }
     )
 
-    // ---------- Events ----------
     layer.on({
       mouseover(e: LeafletMouseEvent) {
         const path = e.target as L.Path
@@ -204,8 +186,7 @@ export function CountryLayer({ aqiData, pane }: CountryLayerProps) {
 
   if (!geoData) return null
 
-  // We use a key based on data size to force re-render when AQI data arrives.
-  // This ensures onEachFeature is called for all countries with the actual data.
+  // forces rerender when aqi data arrives.
   return (
     <GeoJSON
       key={`geo-countries-${aqiData.size}`}

@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // --- Zod Schemas ---
 
-export const GeocodingResultSchema = z.object({
+const GeocodingResultSchema = z.object({
   id: z.number(),
   name: z.string(),
   latitude: z.number(),
@@ -10,11 +10,11 @@ export const GeocodingResultSchema = z.object({
   country: z.string().optional(),
 })
 
-export const GeocodingResponseSchema = z.object({
+const GeocodingResponseSchema = z.object({
   results: z.array(GeocodingResultSchema).optional(),
 })
 
-export const AirQualityHourlySchema = z.object({
+const AirQualityHourlySchema = z.object({
   time: z.array(z.string()),
   pm10: z.array(z.number().nullable()).optional(),
   pm2_5: z.array(z.number().nullable()).optional(),
@@ -23,7 +23,7 @@ export const AirQualityHourlySchema = z.object({
   ozone: z.array(z.number().nullable()).optional(),
 })
 
-export const AirQualityResponseSchema = z.object({
+const AirQualityResponseSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   timezone: z.string(),
@@ -38,20 +38,17 @@ export interface AirQualityWithLocation {
   forecast: AirQualityResponse
 }
 
-// --- Geocoding cache ---
-// Module-level: shared across all OpenMeteoClient instances within the same
-// warm Cloud Function invocation, eliminating duplicate geocode calls for the
-// same city name within a single request chain.
+// module level geocoding cache.
 const geocodeCache = new Map<string, GeocodingResult | null>()
 
-/** Clears the module-level geocode cache. Use only in tests. */
+/** clears cache for testing. */
 export function _clearGeocodeCache(): void {
   geocodeCache.clear()
 }
 
 // --- Client ---
 
-export interface OpenMeteoClientOptions {
+interface OpenMeteoClientOptions {
   fetchImpl?: typeof fetch
   geocodingBaseUrl?: string
   airQualityBaseUrl?: string
@@ -70,9 +67,7 @@ export class OpenMeteoClient {
   }
 
   /**
-   * Resolves a city name to its geographic coordinates.
-   * Results are cached at the module level to avoid redundant API calls
-   * when the same city is geocoded multiple times within a warm instance.
+   * resolves a city name to geographic coordinates with caching.
    */
   async geocodeCity(city: string): Promise<GeocodingResult | null> {
     const key = city.toLowerCase().trim()
@@ -103,12 +98,12 @@ export class OpenMeteoClient {
   }
 
   /**
-   * Fetches a 3-day air quality forecast for the specified city.
+   * fetches a 3-day air quality forecast.
    */
   async get3DayForecast(city: string): Promise<AirQualityResponse | null> {
     const location = await this.geocodeCity(city)
     if (!location) {
-      return null // City not found
+      return null
     }
 
     const url = new URL(`${this.airQualityBaseUrl}/air-quality`)
@@ -134,8 +129,7 @@ export class OpenMeteoClient {
   }
 
   /**
-   * Geocodes a city or country name and returns the resolved location alongside
-   * a 3-day air quality forecast. Accepts any place name — city, region, or country.
+   * geocodes location and returns air quality forecast.
    */
   async getAirQualityByLocation(cityOrCountry: string): Promise<AirQualityWithLocation | null> {
     const location = await this.geocodeCity(cityOrCountry)
@@ -165,7 +159,7 @@ export class OpenMeteoClient {
   }
 
   /**
-   * Fetches current air quality for multiple locations in a single batch request.
+   * fetches air quality for multiple locations.
    */
   async getAirQualityBatch(
     coords: { latitude: number; longitude: number }[]
@@ -192,8 +186,7 @@ export class OpenMeteoClient {
 
     const data = await response.json()
 
-    // Open-Meteo returns a single object if one coord is passed,
-    // or an array of objects if multiple coords are passed.
+    // handles object or array response.
     if (Array.isArray(data)) {
       return z.array(AirQualityResponseSchema).parse(data)
     }

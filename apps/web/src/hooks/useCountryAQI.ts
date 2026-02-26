@@ -4,8 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import type { RegionAQIData } from '@/utils/mapTypes'
 
 /**
- * Southeast Asian countries the map covers.
- * Add new entries here when data becomes available for additional regions.
+ * supported sea countries for aqi mapped.
  */
 const SEA_COUNTRIES = [
   'Thailand',
@@ -22,21 +21,14 @@ const SEA_COUNTRIES = [
 ]
 
 interface UseCountryAQIResult {
-  /** Map from lowercase country name → RegionAQIData */
+  // aqi data mapped by lowercase country.
   data: Map<string, RegionAQIData>
   isLoading: boolean
   isError: boolean
 }
 
 /**
- * Fetches AQI data for all Southeast Asian countries in parallel.
- * Reuses the same `trpc.search.byCity` procedure as the Search page —
- * no duplicated fetching logic.
- *
- * Returns a Map keyed by lowercase country name for O(1) GeoJSON lookups.
- *
- * Future city expansion: create a sibling `useCityAQI.ts` that follows
- * the same pattern but queries by city name and returns city-keyed data.
+ * queries aqi data for sea countries in parallel.
  */
 export function useCountryAQI(): UseCountryAQIResult {
   const { user, loading } = useAuth()
@@ -68,14 +60,14 @@ export function useCountryAQI(): UseCountryAQIResult {
       category: result.pollution.category,
     }
 
-    // Index by lowercase country name for GeoJSON property matching
+    // indexes by lowercase country name for geojson matching.
     const normalizedQuery = SEA_COUNTRIES[i].toLowerCase()
     const normalizedResult = result.name.toLowerCase()
 
     dataMap.set(normalizedQuery, regionData)
     dataMap.set(normalizedResult, regionData)
 
-    // Common aliases for Southeast Asian countries to improve robust matching
+    // uses common aliases for asian countries to improve mapping.
     if (normalizedQuery === 'timor-leste' || normalizedResult === 'timor-leste') {
       dataMap.set('east timor', regionData)
     }

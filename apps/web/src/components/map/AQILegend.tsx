@@ -4,12 +4,7 @@ import L from 'leaflet'
 import { AQI_RANGES } from '@/utils/aqiRanges'
 
 /**
- * AQI Legend displayed as a custom Leaflet control.
- *
- * Derives all bands from AQI_RANGES — adding or editing a range here
- * automatically reflects in the legend without additional changes.
- *
- * Works for both country-level and city-level maps (MapLevel agnostic).
+ * renders aqi legend custom leaflet control.
  */
 export function AQILegend() {
   const map = useMap()

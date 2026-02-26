@@ -20,8 +20,6 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { trpc } from '@/lib/trpc'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface RagSource {
   label: string
   url: string
@@ -35,8 +33,6 @@ interface Message {
   timestamp: Date
 }
 
-// ── Suggested questions ────────────────────────────────────────────────────────
-
 const SUGGESTED_QUESTIONS = [
   'What is PM2.5 and why is it dangerous?',
   'How does the AQI scale work?',
@@ -44,8 +40,6 @@ const SUGGESTED_QUESTIONS = [
   "What is Manila's typical air quality?",
   'How does air pollution affect children with asthma?',
 ]
-
-// ── Markdown renderer ──────────────────────────────────────────────────────────
 
 const markdownComponents: Components = {
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -57,8 +51,6 @@ const markdownComponents: Components = {
   h2: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
   h3: ({ children }) => <p className="font-medium mb-1">{children}</p>,
 }
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
 
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
@@ -93,7 +85,6 @@ function MessageBubble({ message }: { message: Message }) {
           )}
         </div>
 
-        {/* Source citations */}
         {!isUser && message.sources && message.sources.length > 0 && (
           <div className="flex flex-wrap gap-1.5 px-1">
             {message.sources.map((src, i) => (
@@ -131,8 +122,6 @@ function TypingIndicator() {
   )
 }
 
-// ── Main Section ───────────────────────────────────────────────────────────────
-
 const ChatSection = () => {
   const { user } = useAuth()
   const { sessionId } = useParams<{ sessionId: string }>()
@@ -153,7 +142,7 @@ const ChatSection = () => {
     { enabled: !!sessionId }
   )
 
-  // Clear messages when starting a new chat
+  // clears messages on new chat start.
   useEffect(() => {
     if (!sessionId) {
       setMessages([])
@@ -217,7 +206,7 @@ const ChatSection = () => {
     setMessages(prev => [...prev, userMsg])
     setInputValue('')
 
-    // Extract city matches from predefined list
+    // extracts city matches from predefined list.
     const cities = [
       'bangkok',
       'manila',
@@ -258,7 +247,6 @@ const ChatSection = () => {
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden relative">
-      {/* ── Global Header ────────────────────────────────────────────────────────── */}
       <header className="shrink-0 z-30 bg-background backdrop-blur-md border-b border-border px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -317,10 +305,8 @@ const ChatSection = () => {
         </div>
       </header>
 
-      {/* ── Middle Body Area ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 flex max-w-7xl mx-auto w-full overflow-hidden relative">
-          {/* Sidebar Overlay (Mobile) */}
           {isSidebarOpen && (
             <div
               className="fixed inset-0 bg-white/60 backdrop-blur-sm z-40 lg:hidden"
@@ -328,7 +314,6 @@ const ChatSection = () => {
             />
           )}
 
-          {/* Sidebar Content */}
           <aside
             className={cn(
               'fixed inset-y-0 left-0 z-50 w-72 border-r border-border flex flex-col transition-transform lg:relative lg:translate-x-0 lg:z-0 lg:inset-auto',
@@ -402,7 +387,6 @@ const ChatSection = () => {
             </div>
           </aside>
 
-          {/* Messages Scroll Area */}
           <main className="flex-1 flex flex-col min-w-0 bg-background lg:border-l lg:border-border overflow-y-auto scroll-smooth scrollbar-hide">
             <div className="max-w-4xl mx-auto w-full px-4 py-8">
               {isLoadingHistory ? (
@@ -461,7 +445,6 @@ const ChatSection = () => {
         </div>
       </div>
 
-      {/* ── Global Footer Input Area ────────────────────────────────────────── */}
       <footer className="shrink-0 bg-background border-t border-border px-4 py-4 md:py-6">
         <div className="max-w-3xl mx-auto">
           <div className="flex gap-3 items-end">

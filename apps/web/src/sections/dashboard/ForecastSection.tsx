@@ -17,7 +17,7 @@ const ForecastSection = ({ homeCity }: ForecastSectionProps) => {
     { city },
     {
       enabled: !loading && !!user && !!homeCity,
-      staleTime: 60 * 60 * 1000, // 1 hour
+      staleTime: 60 * 60 * 1000,
       gcTime: 60 * 60 * 1000,
       refetchInterval: 60 * 60 * 1000,
     }
@@ -47,7 +47,7 @@ const ForecastSection = ({ homeCity }: ForecastSectionProps) => {
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {forecastDays.map((day, idx) => {
-              // Select an icon cycle based on the index to provide some visual variety
+              // selects icon cycle based on index for visual variety.
               const WeatherIcon = idx === 0 ? Cloud : idx === 1 ? CloudRain : Sun
               const iconColor =
                 idx === 0 ? 'text-slate-400' : idx === 1 ? 'text-blue-400' : 'text-amber-400'

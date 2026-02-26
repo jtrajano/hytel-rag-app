@@ -1,11 +1,5 @@
 /**
- * RAGService — Embedding → Retrieval → Prompting pipeline
- *
- * Flow:
- *   1. Embed the user question via Vertex AI text-embedding-004 (REST)
- *   2. Retrieve relevant chunks from Firestore rag_chunks via findNearest (cosine)
- *   3. Fetch current & 3-day air quality forecast from Open-Meteo (if a city is supplied)
- *   4. Build a grounded prompt and generate an answer with Gemini
+ * handles embedding retrieval and prompting.
  */
 
 import { Firestore } from '@google-cloud/firestore'
@@ -18,12 +12,12 @@ import { env } from '../config/env.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface RagSource {
+interface RagSource {
   label: string
   url: string
 }
 
-export interface RagAnswer {
+interface RagAnswer {
   answer: string
   sources: RagSource[]
   liveAqi?: AirQualityWithLocation
@@ -120,11 +114,11 @@ export class RAGService {
       .collection(COLLECTION)
       .findNearest({
         vectorField: 'embedding',
-        queryVector, // Array<number> accepted directly
+        queryVector,
         limit: TOP_K,
-        distanceMeasure: 'COSINE', // string literal — no DistanceMeasure enum needed
+        distanceMeasure: 'COSINE',
         distanceResultField: 'vector_distance',
-        distanceThreshold: DISTANCE_THRESHOLD, // server-side filter
+        distanceThreshold: DISTANCE_THRESHOLD,
       })
       .get()
 
@@ -147,7 +141,6 @@ export class RAGService {
   // ── Step 4: Generate ─────────────────────────────────────────────────────────
 
   async ask(question: string, history: Content[] = [], city?: string): Promise<RagAnswer> {
-    // Run embedding + location extraction in parallel
     const [queryVector, detectedLocation] = await Promise.all([
       this._embed(question),
       city ? Promise.resolve(city) : this._extractLocation(question),
@@ -155,13 +148,11 @@ export class RAGService {
 
     const effectiveCity = city ?? detectedLocation ?? undefined
 
-    // Fetch AQI data + RAG chunks in parallel now that we have the location
     const [aqiResult, chunks] = await Promise.all([
       effectiveCity ? this.openMeteo.getAirQualityByLocation(effectiveCity) : Promise.resolve(null),
       this._retrieveChunks(queryVector),
     ])
 
-    // Build grounded context
     const hourly = aqiResult?.forecast.hourly
     const locationLabel = aqiResult
       ? `${aqiResult.location.name}${aqiResult.location.country ? `, ${aqiResult.location.country}` : ''}`
@@ -225,7 +216,6 @@ export class RAGService {
       result.response.candidates?.[0]?.content?.parts?.[0]?.text ??
       'Sorry, I could not generate an answer. Please try again.'
 
-    // Deduplicate sources
     const seenUrls = new Set<string>()
     const sources: RagSource[] = chunks
       .filter(c => {
