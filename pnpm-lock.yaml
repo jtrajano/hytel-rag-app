@@ -98,7 +98,7 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
       vitest:
-        specifier: ^2.1.8
+        specifier: ^2.1.9
         version: 2.1.9(jsdom@25.0.1)
 
   apps/web:
@@ -270,7 +270,7 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
       vitest:
-        specifier: ^2.1.8
+        specifier: ^2.1.9
         version: 2.1.9(jsdom@25.0.1)
 
   packages/typescript-config: {}
@@ -321,7 +321,7 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
       vitest:
-        specifier: ^2.1.8
+        specifier: ^2.1.9
         version: 2.1.9(jsdom@25.0.1)
 
 packages:
