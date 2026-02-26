@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createElement } from 'react'
 import { useUsers, useUser, useCreateUser } from './useUsers'
 
-// Mock the trpc client
 vi.mock('../lib/trpc', () => ({
   trpc: {
     user: {

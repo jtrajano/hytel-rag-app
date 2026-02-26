@@ -1,0 +1,56 @@
+﻿[93m[4mUnused files[24m[39m (3)
+test-nominatim.js                                 
+apps/web/src/pages/onboarding/SplashPage.tsx      
+apps/web/src/sections/onboarding/SplashSection.tsx
+[93m[4mUnused dependencies[24m[39m (6)
+@google-cloud/firestore  package.json:36:6         
+cheerio                  package.json:37:6         
+pdf-parse                package.json:38:6         
+@repo/shared             apps/web/package.json:22:6
+@repo/ui                 apps/web/package.json:23:6
+@tailwindcss/vite        apps/web/package.json:24:6
+[93m[4mUnlisted dependencies[24m[39m (2)
+@repo/eslint-config        .eslintrc.cjs            
+@typescript-eslint/parser  packages/ui/.eslintrc.cjs
+[93m[4mUnlisted binaries[24m[39m (5)
+python  package.json                      
+gcloud  .github/workflows/deploy-dev.yml  
+gcloud  .github/workflows/deploy-main.yml 
+gcloud  .github/workflows/deploy-stage.yml
+tsx     apps/web/package.json             
+[93m[4mUnused exports[24m[39m (15)
+AvatarImage               apps/web/src/components/ui/avatar.tsx:45:18         
+badgeVariants             apps/web/src/components/ui/badge.tsx:33:17          
+buttonVariants            apps/web/src/components/ui/button.tsx:50:18         
+CardFooter                apps/web/src/components/ui/card.tsx:55:28           
+CardDescription           apps/web/src/components/ui/card.tsx:55:51           
+useFormField              apps/web/src/components/ui/form.tsx:163:3           
+FormDescription           apps/web/src/components/ui/form.tsx:168:3           
+DaySummarySchema          apps/functions/src/trpc/routers/forecast.ts:6:14    
+ForecastResponseSchema    apps/functions/src/trpc/routers/forecast.ts:12:14   
+DEFAULT_TARGET_CITIES     apps/functions/src/services/openaqClient.ts:71:14   
+GeocodingResultSchema     apps/functions/src/services/openMeteoClient.ts:5:14 
+GeocodingResponseSchema   apps/functions/src/services/openMeteoClient.ts:13:14
+AirQualityHourlySchema    apps/functions/src/services/openMeteoClient.ts:17:14
+AirQualityResponseSchema  apps/functions/src/services/openMeteoClient.ts:26:14
+PM25_BREAKPOINTS          apps/functions/src/utils/aqiUtils.ts:16:14          
+[93m[4mUnused exported types[24m[39m (19)
+PollutionData           type       apps/web/src/lib/schema/pollutionSchema.ts:32:13    
+PlaceSearchResult       type       apps/web/src/lib/schema/pollutionSchema.ts:33:13    
+ForecastDay             interface  apps/web/src/interface/index.ts:10:18               
+AQIRange                interface  apps/web/src/utils/aqiRanges.ts:11:18               
+BadgeProps              interface  apps/web/src/components/ui/badge.tsx:25:18          
+ButtonProps             interface  apps/web/src/components/ui/button.tsx:34:18         
+OpenAQLocation          interface  apps/functions/src/services/openaqClient.ts:1:18    
+OpenAQMeasurement       interface  apps/functions/src/services/openaqClient.ts:13:18   
+OpenAQLatestResult      interface  apps/functions/src/services/openaqClient.ts:23:18   
+OpenAQLiveCityReading   interface  apps/functions/src/services/openaqClient.ts:35:18   
+OpenAQClientOptions     interface  apps/functions/src/services/openaqClient.ts:45:18   
+OpenMeteoClientOptions  interface  apps/functions/src/services/openMeteoClient.ts:54:18
+GlobalAqiReading        interface  apps/functions/src/services/bqClient.ts:4:18        
+AdpcForecast            interface  apps/functions/src/services/bqClient.ts:18:18       
+RagSource               interface  apps/functions/src/services/ragService.ts:21:18     
+RagAnswer               interface  apps/functions/src/services/ragService.ts:26:18     
+SearchPollution         interface  apps/functions/src/services/searchService.ts:23:18  
+SearchGuidelineItem     interface  apps/functions/src/services/searchService.ts:33:18  
+CitySearchResult        interface  apps/functions/src/services/searchService.ts:38:18  

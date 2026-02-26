@@ -1,4 +1,4 @@
-export interface OpenAQLocation {
+interface OpenAQLocation {
   id: number
   name: string
   city?: string
@@ -10,7 +10,7 @@ export interface OpenAQLocation {
   }>
 }
 
-export interface OpenAQMeasurement {
+interface OpenAQMeasurement {
   parameter: string
   value: number
   unit?: string
@@ -20,7 +20,7 @@ export interface OpenAQMeasurement {
   }
 }
 
-export interface OpenAQLatestResult {
+interface OpenAQLatestResult {
   locationId: number
   location?: string
   city?: string
@@ -32,7 +32,7 @@ export interface OpenAQLatestResult {
   measurements?: OpenAQMeasurement[]
 }
 
-export interface OpenAQLiveCityReading {
+interface OpenAQLiveCityReading {
   city: string
   country: string | null
   timestamp: string
@@ -42,7 +42,7 @@ export interface OpenAQLiveCityReading {
   o3: number | null
 }
 
-export interface OpenAQClientOptions {
+interface OpenAQClientOptions {
   apiKey: string
   baseUrl?: string
   fetchImpl?: typeof fetch
@@ -68,7 +68,7 @@ interface OpenAQLatestRow {
   locationsId?: number
 }
 
-export const DEFAULT_TARGET_CITIES = [
+const DEFAULT_TARGET_CITIES = [
   'Manila',
   'Jakarta',
   'Bangkok',
@@ -108,7 +108,7 @@ export class OpenAQClient {
     let best: OpenAQLatestResult | null = null
     let bestTs = 0
 
-    // Bound the scan to avoid excessive API calls while still favoring fresh data.
+    // limits scan to avoid excessive api calls.
     for (const location of candidates.slice(0, 20)) {
       const path = `/locations/${location.id}/latest?limit=${latestLimit}`
       const payload =

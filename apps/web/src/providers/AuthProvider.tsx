@@ -57,8 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const isNewUser = getAdditionalUserInfo(result)?.isNewUser ?? false
 
-    // Set redirect target BEFORE Firestore awaits so it's ready when
-    // onAuthStateChanged updates user state and PublicOnlyRoute re-renders
+    // sets redirect target before firestore resolves.
     setSignInRedirect(isNewUser ? '/onboarding/profile' : '/dashboard')
 
     const userRef = doc(db, 'users', u.uid)
@@ -93,7 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, pass)
     setSignInRedirect('/dashboard')
 
-    // Update lastLoginAt
     if (auth.currentUser) {
       const userRef = doc(db, 'users', auth.currentUser.uid)
       await setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true })

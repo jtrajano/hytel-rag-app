@@ -1,13 +1,5 @@
 /**
- * SearchService — City or country air quality lookup for the search page
- *
- * Flow:
- *   1. Try to find an exact/partial city match in BigQuery global_aqi_reference
- *   2. If no city match, try OpenAQ live API for wider global coverage
- *   3. If still no city match, aggregate country average from both BigQuery tables
- *   4. Compute numeric AQI from PM2.5 using the EPA formula
- *   5. Call Gemini to generate visitor guidelines, prevention tips, and improvement actions
- *   6. Return a structured result with a `type` field: 'city' | 'country'
+ * handles city or country air quality lookups.
  */
 
 import { BigQuery } from '@google-cloud/bigquery'
@@ -20,7 +12,7 @@ import { pm25ToAqi, aqiToCategory, AqiCategory } from '../utils/aqiUtils.js'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export interface SearchPollution {
+interface SearchPollution {
   aqi: number
   category: AqiCategory
   pm25: number
@@ -30,12 +22,12 @@ export interface SearchPollution {
   updatedAt: string
 }
 
-export interface SearchGuidelineItem {
+interface SearchGuidelineItem {
   id: string
   text: string
 }
 
-export interface CitySearchResult {
+interface CitySearchResult {
   type: 'city' | 'country'
   id: string
   name: string
@@ -52,7 +44,6 @@ const GEMINI_MODEL = env.vertex.geminiModel
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Country name (lowercase) → flag emoji */
 const COUNTRY_FLAG: Record<string, string> = {
   philippines: '🇵🇭',
   indonesia: '🇮🇩',
@@ -80,8 +71,7 @@ const COUNTRY_FLAG: Record<string, string> = {
 }
 
 /**
- * Resolves a country string (full name or ISO-2 code) to a flag emoji.
- * Falls back to 🌍 if no match is found.
+ * resolves country string to flag emoji.
  */
 function resolveFlagEmoji(country: string): string {
   const lower = country.toLowerCase()
@@ -166,11 +156,7 @@ export class SearchService {
     this.openMeteo = new OpenMeteoClient()
   }
 
-  // ── Step 1 (fast path): Live city data — OpenAQ + Open-Meteo in parallel ──
-  // Both sources run simultaneously. OpenAQ provides real-time ground-station
-  // readings; Open-Meteo provides satellite-based forecasts with module-level
-  // geocoding cache. Running in parallel cuts latency to ~500ms instead of
-  // the sequential 5-30s + 1-3s that running BigQuery first imposed.
+  // fetches live city data from openaq and open-meteo in parallel.
 
   private async fetchLiveCityData(searchQuery: string): Promise<{
     city: string
@@ -181,7 +167,6 @@ export class SearchService {
     o3: number | null
     timestamp: string
   } | null> {
-    // Start both requests simultaneously
     const openaqPromise = this.openaq
       ? this.openaq.getCurrentByCity(searchQuery).catch(() => null)
       : Promise.resolve(null)
@@ -189,7 +174,7 @@ export class SearchService {
 
     const [aqResult, omResult] = await Promise.all([openaqPromise, openMeteoPromise])
 
-    // Prefer OpenAQ (real-time ground station) when it has measurements
+    // prefers openaq when it has measurements.
     if (aqResult?.measurements?.length) {
       const get = (param: string) =>
         aqResult.measurements!.find((m: { parameter: string }) => m.parameter === param)?.value ??
@@ -208,7 +193,7 @@ export class SearchService {
       }
     }
 
-    // Fall back to Open-Meteo satellite forecast (~500ms, geocode-cached)
+    // falls back to open-meteo forecast.
     if (omResult) {
       const { location, forecast } = omResult
       return {
@@ -361,9 +346,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
   // ── Public API ─────────────────────────────────────────────────────────────
 
   async lookupCity(searchQuery: string, skipAi: boolean = false): Promise<CitySearchResult | null> {
-    // Step 1: Fast path — live data via OpenAQ + Open-Meteo in parallel (~500ms).
-    // This covers virtually all cities and countries via geocoding. BigQuery is
-    // only used as a fallback for the rare case where Open-Meteo has no data.
+    // fetches live data and falls back to bigquery.
     const liveRow = await this.fetchLiveCityData(searchQuery)
     if (liveRow) {
       return this.buildCityResult({
@@ -381,7 +364,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
       })
     }
 
-    // Step 2: BigQuery city match — fallback for locations Open-Meteo couldn't resolve.
+    // attempts bigquery city match as fallback.
     const cityRow = await this.bqClient.fetchCityData(searchQuery)
     if (cityRow) {
       return this.buildCityResult({
@@ -399,7 +382,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
       })
     }
 
-    // Step 3: Country aggregate from BigQuery (national average across all cities).
+    // aggregates country data from bigquery.
     const [countryRow, adpcRow] = await Promise.all([
       this.bqClient.fetchCountryData(searchQuery),
       this.bqClient.fetchAdpcCountryData(searchQuery),
@@ -407,7 +390,7 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
 
     if (countryRow || adpcRow) {
       const matchedCountry = countryRow?.country ?? adpcRow!.country
-      // Prefer ADPC satellite pm25 (more reliable regional data); fall back to global_aqi aggregate
+      // prefers adpc satellite pm25 over global aggregate.
       return this.buildCityResult({
         type: 'country',
         name: matchedCountry,

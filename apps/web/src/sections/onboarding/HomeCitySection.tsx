@@ -32,7 +32,7 @@ const HomeCitySection = () => {
     setIsSaving(true)
 
     try {
-      // Validate that the location exists in our data sources (skip AI — we only need to confirm it exists)
+      // validates location existence in data sources.
       const result = await utils.search.byCity.fetch({ query: city, skipAi: true })
 
       if (!result) {
@@ -43,7 +43,7 @@ const HomeCitySection = () => {
         return
       }
 
-      // Ensure the location belongs to a supported Southeast Asian country
+      // requires location to be a supported southeast asian country.
       const matchedCountry = result.type === 'country' ? result.name : result.country
       if (!POPULAR_SEARCHES.includes(matchedCountry)) {
         setValidationError('This application only supports Southeast Asian countries.')
@@ -63,7 +63,6 @@ const HomeCitySection = () => {
 
   return (
     <div className="min-h-screen flex flex-col px-4 py-8 max-w-lg mx-auto">
-      {/* Step indicator */}
       <div className="flex items-center gap-2 mb-8">
         <div className="flex gap-1.5">
           <div className="w-6 h-1.5 rounded-full bg-primary/40" />
@@ -72,13 +71,11 @@ const HomeCitySection = () => {
         <span className="text-xs text-muted-foreground font-medium">Step 2 of 2</span>
       </div>
 
-      {/* Heading */}
       <h1 className="text-2xl font-bold text-foreground mb-2">Where are you based?</h1>
       <p className="text-sm text-muted-foreground mb-8">
         We'll automatically detect your location for real-time air quality updates
       </p>
 
-      {/* Use My Location button */}
       <Button
         size="lg"
         className="w-full rounded-lg mb-2 gap-2"
@@ -108,14 +105,12 @@ const HomeCitySection = () => {
         <p className="text-xs text-destructive mb-4 text-center">{locationError}</p>
       )}
 
-      {/* Divider */}
       <div className="flex items-center gap-3 mb-6">
         <Separator className="flex-1" />
         <span className="text-xs text-muted-foreground">or search manually</span>
         <Separator className="flex-1" />
       </div>
 
-      {/* City search input */}
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <Input
@@ -134,7 +129,6 @@ const HomeCitySection = () => {
         <p className="text-xs text-destructive mb-6 -mt-4 pl-1">{validationError}</p>
       )}
 
-      {/* Quick select cities */}
       <div className="mb-10">
         <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
           Southeast Asia Countries
@@ -157,7 +151,6 @@ const HomeCitySection = () => {
         </div>
       </div>
 
-      {/* Complete Setup */}
       <Button
         size="lg"
         className="w-full rounded-lg"
