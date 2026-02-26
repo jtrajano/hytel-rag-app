@@ -196,14 +196,36 @@ export class SearchService {
     // falls back to open-meteo forecast.
     if (omResult) {
       const { location, forecast } = omResult
+      const times = forecast.hourly?.time ?? []
+
+      // find the index for the current local hour in the city's timezone.
+      // open-meteo times are local strings like "2026-02-26T14:00", so we
+      // match against the current hour formatted in the same timezone.
+      let idx = 0
+      if (times.length > 0 && forecast.timezone) {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: forecast.timezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          hour12: false,
+        }).formatToParts(new Date())
+        const get = (type: string) => parts.find(p => p.type === type)?.value ?? ''
+        const hour = String(parseInt(get('hour'), 10) % 24).padStart(2, '0')
+        const localHourStr = `${get('year')}-${get('month')}-${get('day')}T${hour}:00`
+        const found = times.indexOf(localHourStr)
+        if (found !== -1) idx = found
+      }
+
       return {
         city: location.name,
         country: location.country ?? '',
-        pm25: forecast.hourly?.pm2_5?.find((v: number | null) => v !== null) ?? null,
-        pm10: forecast.hourly?.pm10?.find((v: number | null) => v !== null) ?? null,
-        no2: forecast.hourly?.nitrogen_dioxide?.find((v: number | null) => v !== null) ?? null,
-        o3: forecast.hourly?.ozone?.find((v: number | null) => v !== null) ?? null,
-        timestamp: forecast.hourly?.time[0] ?? new Date().toISOString(),
+        pm25: forecast.hourly?.pm2_5?.[idx] ?? null,
+        pm10: forecast.hourly?.pm10?.[idx] ?? null,
+        no2: forecast.hourly?.nitrogen_dioxide?.[idx] ?? null,
+        o3: forecast.hourly?.ozone?.[idx] ?? null,
+        timestamp: times[idx] ?? new Date().toISOString(),
       }
     }
 
