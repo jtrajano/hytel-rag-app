@@ -10,15 +10,31 @@ import { trpc } from '@/lib/trpc'
 
 const TEN_MINUTES_MS = 10 * 60 * 1000
 
+const COUNTRY_TO_CAPITAL: Record<string, string> = {
+  Thailand: 'Bangkok',
+  Vietnam: 'Hanoi',
+  Cambodia: 'Phnom Penh',
+  Laos: 'Vientiane',
+  Myanmar: 'Naypyidaw',
+  Malaysia: 'Kuala Lumpur',
+  Indonesia: 'Jakarta',
+  Philippines: 'Manila',
+  Singapore: 'Singapore',
+  Brunei: 'Bandar Seri Begawan',
+  'Timor-Leste': 'Dili',
+}
+
 const DashboardPage = () => {
   const { user, loading: authLoading, signOut, homeCity } = useAuth()
+
+  const aqiCity = (homeCity && COUNTRY_TO_CAPITAL[homeCity]) ?? homeCity ?? ''
 
   const {
     data: currentAqi,
     isLoading: aqiLoading,
     isError: aqiError,
   } = trpc.chat.currentAqi.useQuery(
-    { city: homeCity ?? '' },
+    { city: aqiCity },
     {
       enabled: !authLoading && !!user && !!homeCity,
       staleTime: TEN_MINUTES_MS,
