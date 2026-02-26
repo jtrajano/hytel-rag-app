@@ -1,8 +1,11 @@
-import { ShieldAlert, Leaf, Globe } from 'lucide-react'
+import { useState } from 'react'
+import { ShieldAlert, Leaf, Globe, Sparkles, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { trpc } from '@/lib/trpc'
 import { getAqiTextColor, getAqiBadgeClass, getAqiScaleIndex } from './searchUtils'
 import { AQI_SCALE_SEGMENTS } from './searchConstants'
 
@@ -40,6 +43,29 @@ export function SearchResults({ result }: { result: SearchResult }) {
   const aqiBadgeClass = getAqiBadgeClass(pollution.aqi)
   const activeSegment = getAqiScaleIndex(pollution.aqi)
   const showVisitorGuidelines = pollution.aqi > 100
+
+  const guidelinesMutation = trpc.search.guidelines.useMutation()
+  const [triggered, setTriggered] = useState(false)
+
+  const handleGenerate = () => {
+    setTriggered(true)
+    guidelinesMutation.mutate({
+      name: result.name,
+      country: result.country,
+      type: result.type,
+      aqi: pollution.aqi,
+      category: pollution.category as
+        | 'Good'
+        | 'Moderate'
+        | 'Unhealthy for Sensitive Groups'
+        | 'Unhealthy'
+        | 'Very Unhealthy'
+        | 'Hazardous',
+      pm25: pollution.pm25,
+      pm10: pollution.pm10,
+      no2: pollution.no2,
+    })
+  }
 
   return (
     <div className="space-y-4">
@@ -153,43 +179,92 @@ export function SearchResults({ result }: { result: SearchResult }) {
         </CardContent>
       </Card>
 
-      {/* displays guidelines when aqi exceeds 100. */}
-      {showVisitorGuidelines && (
+      {/* not yet triggered: prompt card with generate button */}
+      {!triggered && (
         <Card className="border-border shadow-sm">
-          <CardHeader className="px-5 pt-5 pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
-                <ShieldAlert className="w-5 h-5 text-orange-600" />
-              </div>
-              <CardTitle className="text-base font-semibold text-foreground">
-                {isCountry ? `Visitor Guidelines — ${result.name}` : 'Visitor Guidelines'}
-              </CardTitle>
+          <CardContent className="p-5 flex flex-col items-center gap-3 text-center">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-muted-foreground" />
             </div>
-          </CardHeader>
-          <CardContent className="px-5 pb-5">
-            {isCountry && (
-              <p className="text-xs text-muted-foreground mb-3">
-                Based on the national average — conditions may vary by city.
+            <div>
+              <p className="text-sm font-medium text-foreground">AI-Powered Recommendations</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Get personalised health guidelines and improvement actions based on current air
+                quality.
               </p>
-            )}
-            <ul className="space-y-3">
-              {result.visitorGuidelines.map(g => (
-                <li key={g.id} className="flex items-start gap-2.5">
-                  <span className="mt-1 w-4 h-4 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                  </span>
-                  <p className="text-sm text-foreground leading-relaxed">{g.text}</p>
-                </li>
-              ))}
-            </ul>
+            </div>
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleGenerate}>
+              <Sparkles className="w-4 h-4" />
+              Generate Recommendations
+            </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* displays prevention and improvement actions. */}
-      <Card className="border-border shadow-sm">
-        <CardHeader className="px-5 pt-5 pb-3">
-          <div className="flex items-center justify-between">
+      {/* loading state */}
+      {triggered && guidelinesMutation.isPending && (
+        <Card className="border-border shadow-sm">
+          <CardContent className="p-5 flex items-center justify-center gap-3 py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Generating AI recommendations…</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* error state */}
+      {triggered && guidelinesMutation.isError && (
+        <Card className="border-destructive/30">
+          <CardContent className="p-5 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm text-destructive">
+              Could not generate recommendations. Please try again.
+            </p>
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleGenerate}>
+              <Sparkles className="w-4 h-4" />
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* success: visitor guidelines (only when aqi > 100) */}
+      {guidelinesMutation.data &&
+        showVisitorGuidelines &&
+        guidelinesMutation.data.visitorGuidelines.length > 0 && (
+          <Card className="border-border shadow-sm">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+                  <ShieldAlert className="w-5 h-5 text-orange-600" />
+                </div>
+                <CardTitle className="text-base font-semibold text-foreground">
+                  {isCountry ? `Visitor Guidelines — ${result.name}` : 'Visitor Guidelines'}
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
+              {isCountry && (
+                <p className="text-xs text-muted-foreground mb-3">
+                  Based on the national average — conditions may vary by city.
+                </p>
+              )}
+              <ul className="space-y-3">
+                {guidelinesMutation.data.visitorGuidelines.map(g => (
+                  <li key={g.id} className="flex items-start gap-2.5">
+                    <span className="mt-1 w-4 h-4 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    </span>
+                    <p className="text-sm text-foreground leading-relaxed">{g.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+      {/* success: prevention & improvement */}
+      {guidelinesMutation.data && (
+        <Card className="border-border shadow-sm">
+          <CardHeader className="px-5 pt-5 pb-3">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
                 <Leaf className="w-5 h-5 text-green-600" />
@@ -198,46 +273,45 @@ export function SearchResults({ result }: { result: SearchResult }) {
                 Prevention & Improvement
               </CardTitle>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-5 pb-5 space-y-4">
-          {result.preventionTips.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                What you can do now
-              </p>
-              <ul className="space-y-2">
-                {result.preventionTips.map(tip => (
-                  <li key={tip.id} className="flex items-start gap-2.5">
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                    <p className="text-sm text-foreground leading-relaxed">{tip.text}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          </CardHeader>
+          <CardContent className="px-5 pb-5 space-y-4">
+            {guidelinesMutation.data.preventionTips.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  What you can do now
+                </p>
+                <ul className="space-y-2">
+                  {guidelinesMutation.data.preventionTips.map(tip => (
+                    <li key={tip.id} className="flex items-start gap-2.5">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                      <p className="text-sm text-foreground leading-relaxed">{tip.text}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          {result.preventionTips.length > 0 && result.improvementActions.length > 0 && (
-            <Separator />
-          )}
+            {guidelinesMutation.data.preventionTips.length > 0 &&
+              guidelinesMutation.data.improvementActions.length > 0 && <Separator />}
 
-          {result.improvementActions.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                Long-term improvements
-              </p>
-              <ul className="space-y-2">
-                {result.improvementActions.map(action => (
-                  <li key={action.id} className="flex items-start gap-2.5">
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                    <p className="text-sm text-foreground leading-relaxed">{action.text}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            {guidelinesMutation.data.improvementActions.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  Long-term improvements
+                </p>
+                <ul className="space-y-2">
+                  {guidelinesMutation.data.improvementActions.map(action => (
+                    <li key={action.id} className="flex items-start gap-2.5">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                      <p className="text-sm text-foreground leading-relaxed">{action.text}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

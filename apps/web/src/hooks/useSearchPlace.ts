@@ -5,7 +5,7 @@ export function useSearchPlace(query: string) {
   const { user, loading } = useAuth()
 
   return trpc.search.byCity.useQuery(
-    { query: query.trim() },
+    { query: query.trim(), skipAi: true },
     {
       enabled: !loading && !!user && query.trim().length > 0,
       staleTime: 5 * 60 * 1000,

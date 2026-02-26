@@ -345,6 +345,20 @@ Keep each item concise (1-2 sentences). Be specific to the current AQI level.`
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
+  async generateGuidelines(
+    name: string,
+    country: string,
+    type: 'city' | 'country',
+    aqi: number,
+    category: AqiCategory,
+    pm25: number,
+    pm10: number,
+    no2: number
+  ) {
+    const locationLabel = type === 'country' ? name : `${name}, ${country}`
+    return this.generateContent(locationLabel, type, aqi, category, pm25, pm10, no2)
+  }
+
   async lookupCity(searchQuery: string, skipAi: boolean = false): Promise<CitySearchResult | null> {
     // fetches live data and falls back to bigquery.
     const liveRow = await this.fetchLiveCityData(searchQuery)
