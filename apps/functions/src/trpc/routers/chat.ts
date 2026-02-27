@@ -14,6 +14,16 @@ const rag = new RAGService(PROJECT_ID)
 const searchService = new SearchService(PROJECT_ID)
 const openMeteo = new OpenMeteoClient()
 
+function shouldIncludeLiveAqi(question: string): boolean {
+  const q = question.toLowerCase()
+
+  const measurementHints =
+    /\b(aqi|pm2\.?5|pm10|ozone|no2|co|air quality|pollution level|reading|index|forecast)\b/.test(q)
+  const timeHints = /\b(now|current|today|tomorrow|live|hourly|3-day|three day|this week)\b/.test(q)
+
+  return measurementHints || timeHints
+}
+
 export const chatRouter = router({
   currentAqi: publicProcedure
     .input(
@@ -141,7 +151,9 @@ export const chatRouter = router({
         }
       })
 
-      const data = await rag.ask(input.question, history, input.city)
+      const data = await rag.ask(input.question, history, input.city, {
+        includeLiveAqi: shouldIncludeLiveAqi(input.question),
+      })
 
       const sessionRef = db.collection('chat_sessions').doc(sessionId)
       await Promise.all([
@@ -190,9 +202,11 @@ export const chatRouter = router({
 
 Live reading for ${input.city ?? 'this city'} (as of ${input.currentAqi.updatedAt}):
 - Estimated AQI: ${input.currentAqi.aqi} (${input.currentAqi.quality})`
-        return await rag.ask(enriched, [], undefined)
+        return await rag.ask(enriched, [], undefined, { includeLiveAqi: false })
       }
 
-      return await rag.ask(input.question, [], input.city)
+      return await rag.ask(input.question, [], input.city, {
+        includeLiveAqi: shouldIncludeLiveAqi(input.question),
+      })
     }),
 })

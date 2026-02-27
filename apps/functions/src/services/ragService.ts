@@ -23,6 +23,10 @@ interface RagAnswer {
   liveAqi?: AirQualityWithLocation
 }
 
+interface AskOptions {
+  includeLiveAqi?: boolean
+}
+
 interface FirestoreChunk {
   content: string
   source_label: string
@@ -140,13 +144,19 @@ export class RAGService {
 
   // ── Step 4: Generate ─────────────────────────────────────────────────────────
 
-  async ask(question: string, history: Content[] = [], city?: string): Promise<RagAnswer> {
+  async ask(
+    question: string,
+    history: Content[] = [],
+    city?: string,
+    options: AskOptions = {}
+  ): Promise<RagAnswer> {
+    const includeLiveAqi = options.includeLiveAqi ?? false
     const [queryVector, detectedLocation] = await Promise.all([
       this._embed(question),
-      city ? Promise.resolve(city) : this._extractLocation(question),
+      includeLiveAqi ? (city ? Promise.resolve(city) : this._extractLocation(question)) : null,
     ])
 
-    const effectiveCity = city ?? detectedLocation ?? undefined
+    const effectiveCity = includeLiveAqi ? city ?? detectedLocation ?? undefined : undefined
 
     const [aqiResult, chunks] = await Promise.all([
       effectiveCity ? this.openMeteo.getAirQualityByLocation(effectiveCity) : Promise.resolve(null),
@@ -200,6 +210,9 @@ export class RAGService {
         : ''
 
     const hasData = forecastSection || ragSection
+
+    console.log(forecastSection)
+    console.log(ragSection)
     const contextualPrompt = hasData
       ? `CONTEXTUAL DATA:\n${forecastSection}\n${ragSection}\n\nUSER QUESTION: ${question}`
       : question
