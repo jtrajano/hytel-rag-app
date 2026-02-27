@@ -65,7 +65,6 @@ const LoginSection = () => {
     try {
       await signInWithEmail(data.email, data.password)
     } catch (err: unknown) {
-      console.error('Login error:', err)
       const firebaseError = err as { code?: string; message?: string }
       if (
         firebaseError.code === 'auth/invalid-credential' ||
